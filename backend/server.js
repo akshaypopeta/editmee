@@ -255,24 +255,30 @@ app.post(
     }
 );
 
+app.get("/health", (req, res) => {
+
+    res.json({
+        success: true,
+        message: "Backend is running"
+    });
+
+});
+
 /* =========================
    START SERVER
 ========================= */
+const PORT = process.env.PORT || 3000;
 
 app.listen(
-    3000,
+    PORT,
     () => {
 
         console.log(
-            "Server running on port 3000"
+            `Server running on port ${PORT}`
         );
 
         console.log(
-            "Protect PDF:"
-        );
-
-        console.log(
-            "http://localhost:3000/tools/protect-pdf/index.html"
+            "Editmee Backend Started"
         );
 
     }
