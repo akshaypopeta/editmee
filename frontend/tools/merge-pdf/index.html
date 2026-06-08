@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Merge PDF Tool</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  />
+
+</head>
+
+<body>
+
+  <!-- HEADER -->
+
+  <header class="header">
+
+     <a href="../../index.html" class="logo">
+    <img src="../../assets/images/editmee_logo.png" alt="EditMee Logo">
+</a>
+
+    <a href="../../index.html" class="back-btn">
+      ← Back to Home
+    </a>
+
+  </header>
+
+  <!-- MAIN -->
+
+  <main class="container">
+
+    <!-- TOP -->
+
+    <div class="top-content">
+
+      <h1>Merge PDF Files</h1>
+
+      <p>
+        Combine PDFs in the order you want with the easiest PDF merger tool.
+      </p>
+
+    </div>
+
+    <!-- UPLOAD BOX -->
+
+    <label class="upload-box" id="uploadBox">
+
+      <input
+        type="file"
+        id="pdfInput"
+        accept=".pdf"
+        multiple
+        hidden
+      >
+
+      <i class="fa-solid fa-cloud-arrow-up"></i>
+
+      <h2>Select PDF Files</h2>
+
+      <p>
+        or drag and drop PDF files here
+      </p>
+
+    </label>
+
+    <!-- FILES -->
+
+    <div id="fileList" class="file-list"></div>
+
+    <!-- BUTTON -->
+
+    <button id="mergeBtn" class="merge-btn">
+      Merge PDF
+    </button>
+
+  </main>
+
+  <!-- LOADER -->
+
+  <div id="loader" class="loader hidden">
+
+    <div class="spinner"></div>
+
+    <p>Merging PDFs...</p>
+
+  </div>
+<footer class="footer">
+
+    <div class="footer-container">
+
+        <div class="footer-brand">
+
+            <img src="../../assets/images/editmee_logo.png" alt="EditMee">
+
+            <p>
+                Free online PDF tools to edit, merge, split, rotate,
+                protect and convert PDF files quickly and securely.
+            </p>
+
+        </div>
+
+        <div class="footer-column">
+
+            <h3>Popular Tools</h3>
+
+            <a href="../../tools/merge-pdf/index.html">Merge PDF</a>
+            <a href="../../tools/split-pdf/index.html">Split PDF</a>
+            <a href="../../tools/rotate-pdf/index.html">Rotate PDF</a>
+            <a href="../../tools/protect-pdf/index.html">Protect PDF</a>
+
+        </div>
+
+        <div class="footer-column">
+
+            <h3>Convert PDF</h3>
+
+            <!-- <a href="../../tools/coming-soon/index.html">PDF to Word</a>
+            <a href="../../tools/coming-soon/index.html">Word to PDF</a> -->
+            <a href="../../tools/pdf-jpg/index.html">PDF to JPG</a>
+            <a href="../../tools/jpg-pdf/index.html">JPG to PDF</a>
+
+        </div>
+
+        <div class="footer-column">
+
+            <h3>Company</h3>
+            <a href="../../about-us/index.html">About Us</a>
+            <a href="../../contact/index.html">Contact Us</a>
+            <a href="../../privacy-policy/index.html">Privacy Policy</a>
+            <a href="../../terms-and-conditions/index.html">Terms & Conditions</a>
+            <a href="../../disclaimer/index.html">Disclaimer</a>
+
+        </div>
+
+    </div>
+
+    <div class="footer-bottom">
+
+        <p>
+            © 2026 EditMee. All Rights Reserved.
+        </p>
+
+    </div>
+
+</footer>
+  <!-- PDF LIB -->
+
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+
+  <script src="script.js"></script>
+
+</body>
+</html>
