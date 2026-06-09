@@ -157,7 +157,7 @@ protectBtn.addEventListener(
 
             const response =
             await fetch(
-                "https://vibrant-alignment.up.railway.app/protect",
+                "editmee-production.up.railway.app/protect",
                 {
                     method:"POST",
                     body:formData
