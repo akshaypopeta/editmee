@@ -157,7 +157,7 @@ protectBtn.addEventListener(
 
             const response =
             await fetch(
-                "http://localhost:3000/protect",
+                "https://vibrant-alignment.up.railway.app/protect",
                 {
                     method:"POST",
                     body:formData
