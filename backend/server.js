@@ -1,3 +1,5 @@
+console.log("FILES:", req.files);
+console.log("BODY:", req.body);
 const express = require("express");
 const multer = require("multer");
 const cors = require("cors");
@@ -78,7 +80,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage
-});
+}).any();
 
 /* =========================
    HOME PAGE
@@ -136,10 +138,13 @@ app.post(
 ========================= */
 
 app.post(
+   app.post(
     "/protect",
-    upload.single("pdf"),
+    upload,
 
     (req, res) => {
+  console.log("FILES:", req.files);
+    console.log("BODY:", req.body);
 
         try {
 
@@ -257,22 +262,12 @@ app.post(
 /* =========================
    START SERVER
 ========================= */
+const PORT = process.env.PORT || 3000;
 
-app.listen(
-    3000,
-    () => {
+app.listen(PORT, () => {
 
-        console.log(
-            "Server running on port 3000"
-        );
+    console.log(
+        `Server running on port ${PORT}`
+    );
 
-        console.log(
-            "Protect PDF:"
-        );
-
-        console.log(
-            "http://localhost:3000/tools/protect-pdf/index.html"
-        );
-
-    }
-);
+});
