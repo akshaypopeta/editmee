@@ -146,7 +146,7 @@ protectBtn.addEventListener(
             new FormData();
 
             formData.append(
-                "pdf",
+                "file",
                 selectedFile
             );
 
