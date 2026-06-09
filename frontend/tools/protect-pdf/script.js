@@ -157,7 +157,7 @@ protectBtn.addEventListener(
 
             const response =
             await fetch(
-                "editmee-production.up.railway.app/protect",
+                "https://editmee-production.up.railway.app/protect",
                 {
                     method:"POST",
                     body:formData
