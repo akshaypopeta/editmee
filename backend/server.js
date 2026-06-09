@@ -1,61 +1,278 @@
 const express = require("express");
-const cors = require("cors");
 const multer = require("multer");
+const cors = require("cors");
+const path = require("path");
+const fs = require("fs");
+const { exec } = require("child_process");
 
 const app = express();
 
 /* =========================
-   FILE UPLOAD SETUP
-========================= */
-const upload = multer({ dest: "uploads/" });
-
-/* =========================
-   CORS CONFIG (IMPORTANT)
-========================= */
-app.use(cors({
-    origin: ["https://editmee.com", "https://www.editmee.com"]
-}));
-
-/* =========================
    MIDDLEWARE
 ========================= */
+
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /* =========================
-   TEST ROUTE
+   SERVE STATIC FILES
 ========================= */
-app.get("/", (req, res) => {
-    res.send("Backend is working 🚀");
+
+app.use(
+    "/tools",
+    express.static(
+        path.join(__dirname, "tools")
+    )
+);
+
+/* =========================
+   CREATE FOLDERS IF MISSING
+========================= */
+
+const uploadsDir = path.join(
+    __dirname,
+    "uploads"
+);
+
+const outputDir = path.join(
+    __dirname,
+    "output"
+);
+
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir);
+}
+
+if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir);
+}
+
+/* =========================
+   MULTER CONFIG
+========================= */
+
+const storage = multer.diskStorage({
+
+    destination: (req, file, cb) => {
+
+        cb(
+            null,
+            uploadsDir
+        );
+
+    },
+
+    filename: (req, file, cb) => {
+
+        cb(
+            null,
+            Date.now() +
+            "-" +
+            file.originalname
+        );
+
+    }
+
+});
+
+const upload = multer({
+    storage
 });
 
 /* =========================
-   PROTECT PDF ROUTE
+   HOME PAGE
 ========================= */
-app.post("/protect", upload.single("file"), (req, res) => {
-    try {
-        console.log("File received:", req.file);
+
+app.get("/", (req, res) => {
+
+    res.sendFile(
+        path.join(
+            __dirname,
+            "index.html"
+        )
+    );
+
+});
+
+/* =========================
+   UPLOAD ROUTE
+========================= */
+
+app.post(
+    "/upload",
+    upload.single("pdf"),
+    (req, res) => {
+
+        if (!req.file) {
+
+            return res
+                .status(400)
+                .json({
+                    success: false,
+                    message: "No PDF uploaded"
+                });
+
+        }
+
+        console.log(
+            "Uploaded:",
+            req.file.filename
+        );
 
         res.json({
+
             success: true,
-            message: "File received successfully"
+
+            file: req.file.filename
+
         });
 
-    } catch (error) {
-        console.error(error);
-
-        res.status(500).json({
-            success: false,
-            message: "Server error"
-        });
     }
-});
+);
+
+/* =========================
+   PROTECT PDF
+========================= */
+
+app.post(
+    "/protect",
+    upload.single("pdf"),
+
+    (req, res) => {
+
+        try {
+
+            const password =
+                req.body.password;
+
+            if (
+                !req.file ||
+                !password
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        message:
+                            "PDF and password required"
+                    });
+
+            }
+
+            const inputFile =
+                req.file.path;
+
+            const outputFile =
+                path.join(
+                    outputDir,
+                    `protected-${Date.now()}.pdf`
+                );
+
+           const command =
+    `qpdf --encrypt "${password}" "${password}" 256 -- ` +
+    `"${inputFile}" "${outputFile}"`;
+
+            exec(
+                command,
+                (error) => {
+
+                    if (error) {
+
+                        console.error(error);
+
+                        if (
+                            fs.existsSync(
+                                inputFile
+                            )
+                        ) {
+                            fs.unlinkSync(
+                                inputFile
+                            );
+                        }
+
+                        return res
+                            .status(500)
+                            .json({
+                                success: false,
+                                message:
+                                    "Encryption failed"
+                            });
+
+                    }
+
+                    res.download(
+                        outputFile,
+                        "protected.pdf",
+                        (err) => {
+
+                            if (
+                                fs.existsSync(
+                                    inputFile
+                                )
+                            ) {
+                                fs.unlinkSync(
+                                    inputFile
+                                );
+                            }
+
+                            if (
+                                fs.existsSync(
+                                    outputFile
+                                )
+                            ) {
+                                fs.unlinkSync(
+                                    outputFile
+                                );
+                            }
+
+                            if (err) {
+                                console.error(err);
+                            }
+
+                        }
+                    );
+
+                }
+            );
+
+        }
+        catch (err) {
+
+            console.error(err);
+
+            res.status(500)
+                .json({
+                    success: false,
+                    message:
+                        "Server Error"
+                });
+
+        }
+
+    }
+);
 
 /* =========================
    START SERVER
 ========================= */
-const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+app.listen(
+    3000,
+    () => {
+
+        console.log(
+            "Server running on port 3000"
+        );
+
+        console.log(
+            "Protect PDF:"
+        );
+
+        console.log(
+            "http://localhost:3000/tools/protect-pdf/index.html"
+        );
+
+    }
+);
