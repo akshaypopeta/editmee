@@ -1,5 +1,3 @@
-console.log("FILES:", req.files);
-console.log("BODY:", req.body);
 const express = require("express");
 const multer = require("multer");
 const cors = require("cors");
@@ -80,7 +78,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage
-}).any();
+});
 
 /* =========================
    HOME PAGE
@@ -138,13 +136,13 @@ app.post(
 ========================= */
 
 app.post(
-   app.post(
     "/protect",
-    upload,
+    upload.single("pdf"),
 
     (req, res) => {
-  console.log("FILES:", req.files);
-    console.log("BODY:", req.body);
+
+        console.log("FILE:", req.file);
+        console.log("BODY:", req.body);
 
         try {
 
@@ -175,9 +173,9 @@ app.post(
                     `protected-${Date.now()}.pdf`
                 );
 
-           const command =
-    `qpdf --encrypt "${password}" "${password}" 256 -- ` +
-    `"${inputFile}" "${outputFile}"`;
+            const command =
+                `qpdf --encrypt "${password}" "${password}" 256 -- ` +
+                `"${inputFile}" "${outputFile}"`;
 
             exec(
                 command,
@@ -262,12 +260,16 @@ app.post(
 /* =========================
    START SERVER
 ========================= */
+
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+app.listen(
+    PORT,
+    () => {
 
-    console.log(
-        `Server running on port ${PORT}`
-    );
+        console.log(
+            `Server running on port ${PORT}`
+        );
 
-});
+    }
+);
