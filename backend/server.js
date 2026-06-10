@@ -85,16 +85,11 @@ const upload = multer({
 ========================= */
 
 app.get("/", (req, res) => {
-
-    res.sendFile(
-        path.join(
-            __dirname,
-            "index.html"
-        )
-    );
-
+    res.json({
+        success: true,
+        message: "EditMee PDF API is running"
+    });
 });
-
 /* =========================
    UPLOAD ROUTE
 ========================= */
