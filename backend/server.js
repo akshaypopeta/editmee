@@ -136,6 +136,7 @@ app.post(
 
     (req, res) => {
 
+        console.log("PROTECT ROUTE HIT");
         console.log("FILE:", req.file);
         console.log("BODY:", req.body);
 
@@ -172,13 +173,16 @@ app.post(
                 `qpdf --encrypt "${password}" "${password}" 256 -- ` +
                 `"${inputFile}" "${outputFile}"`;
 
+            console.log("RUNNING COMMAND:", command);
+
             exec(
                 command,
-                (error) => {
+                (error, stdout, stderr) => {
 
                     if (error) {
 
-                        console.error(error);
+                        console.error("QPDF ERROR:", error);
+                        console.error("STDERR:", stderr);
 
                         if (
                             fs.existsSync(
@@ -195,7 +199,7 @@ app.post(
                             .json({
                                 success: false,
                                 message:
-                                    "Encryption failed"
+                                    error.message
                             });
 
                     }
@@ -226,7 +230,10 @@ app.post(
                             }
 
                             if (err) {
-                                console.error(err);
+                                console.error(
+                                    "DOWNLOAD ERROR:",
+                                    err
+                                );
                             }
 
                         }
@@ -238,7 +245,10 @@ app.post(
         }
         catch (err) {
 
-            console.error(err);
+            console.error(
+                "SERVER ERROR:",
+                err
+            );
 
             res.status(500)
                 .json({
@@ -251,7 +261,6 @@ app.post(
 
     }
 );
-
 /* =========================
    START SERVER
 ========================= */
