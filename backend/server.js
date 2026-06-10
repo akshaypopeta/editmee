@@ -261,6 +261,23 @@ app.post(
 
     }
 );
+
+/* =========================
+   ERROR HANDLER
+========================= */
+
+app.use((err, req, res, next) => {
+
+    console.error("MULTER ERROR:", err);
+
+    res.status(500).json({
+        success: false,
+        error: err.message,
+        field: err.field
+    });
+
+});
+
 /* =========================
    START SERVER
 ========================= */
