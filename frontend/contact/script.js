@@ -1,7 +1,7 @@
 const contactForm = document.getElementById("contactForm");
 const formMessage = document.getElementById("formMessage");
 
-emailjs.init("4nakclJfDNwWv_eT_");
+emailjs.init("YOUR_PUBLIC_KEY");
 
 contactForm.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -23,12 +23,13 @@ contactForm.addEventListener("submit", (e) => {
         "template_pe453kv",
         params
     )
-    .then(() => {
+    .then((res) => {
+        console.log("SUCCESS", res);
         formMessage.innerHTML = "✅ Message sent successfully!";
         contactForm.reset();
     })
-    .catch((error) => {
-        console.error(error);
+    .catch((err) => {
+        console.error("ERROR", err);
         formMessage.innerHTML = "❌ Failed to send message.";
     });
 });
