@@ -26,6 +26,14 @@ signatureCanvas.getContext(
     "2d"
 );
 
+signatureCanvas.addEventListener(
+    "touchstart",
+    function () {
+        alert("Canvas touched");
+    },
+    { passive: false }
+);
+
 const signBtn =
 document.getElementById(
     "signBtn"
