@@ -420,13 +420,21 @@ ctx.lineWidth = 2;
 ctx.lineCap = "round";
 ctx.lineJoin = "round";
 
-/* Prevent mobile scrolling while signing */
 signatureCanvas.style.touchAction = "none";
 
-function getPointerPosition(e) {
+function getPosition(e) {
 
     const rect =
     signatureCanvas.getBoundingClientRect();
+
+    if (e.touches && e.touches.length > 0) {
+
+        return {
+            x: e.touches[0].clientX - rect.left,
+            y: e.touches[0].clientY - rect.top
+        };
+
+    }
 
     return {
         x: e.clientX - rect.left,
@@ -434,77 +442,66 @@ function getPointerPosition(e) {
     };
 }
 
-/* =========================
-   START DRAW
-========================= */
+function startDrawing(e) {
+
+    e.preventDefault();
+
+    drawing = true;
+
+    const pos = getPosition(e);
+
+    ctx.beginPath();
+
+    ctx.moveTo(pos.x, pos.y);
+}
+
+function draw(e) {
+
+    if (!drawing) return;
+
+    e.preventDefault();
+
+    const pos = getPosition(e);
+
+    ctx.lineTo(pos.x, pos.y);
+
+    ctx.stroke();
+}
+
+function stopDrawing() {
+
+    drawing = false;
+}
+
+/* Desktop */
+
+signatureCanvas.addEventListener("mousedown", startDrawing);
+signatureCanvas.addEventListener("mousemove", draw);
+signatureCanvas.addEventListener("mouseup", stopDrawing);
+signatureCanvas.addEventListener("mouseleave", stopDrawing);
+
+/* Mobile */
 
 signatureCanvas.addEventListener(
-    "pointerdown",
-    (e) => {
-
-        drawing = true;
-
-        const pos =
-        getPointerPosition(e);
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-            pos.x,
-            pos.y
-        );
-    }
-);
-
-/* =========================
-   DRAW
-========================= */
-
-signatureCanvas.addEventListener(
-    "pointermove",
-    (e) => {
-
-        if (!drawing)
-            return;
-
-        const pos =
-        getPointerPosition(e);
-
-        ctx.lineTo(
-            pos.x,
-            pos.y
-        );
-
-        ctx.stroke();
-    }
-);
-
-/* =========================
-   STOP DRAW
-========================= */
-
-signatureCanvas.addEventListener(
-    "pointerup",
-    () => {
-
-        drawing = false;
-    }
+    "touchstart",
+    startDrawing,
+    { passive: false }
 );
 
 signatureCanvas.addEventListener(
-    "pointerleave",
-    () => {
-
-        drawing = false;
-    }
+    "touchmove",
+    draw,
+    { passive: false }
 );
 
 signatureCanvas.addEventListener(
-    "pointercancel",
-    () => {
+    "touchend",
+    stopDrawing
+);
 
-        drawing = false;
-    }
+signatureCanvas.addEventListener(
+    "touchcancel",
+    stopDrawing
 );
 /* =========================
    CLEAR SIGNATURE
