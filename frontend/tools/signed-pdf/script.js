@@ -411,40 +411,48 @@ canvas.addEventListener(
     }
 
 }
-
 /* =========================
    CANVAS STYLE
 ========================= */
 
 ctx.strokeStyle = "#000";
-
 ctx.lineWidth = 2;
-
 ctx.lineCap = "round";
-
 ctx.lineJoin = "round";
+
+/* Prevent mobile scrolling while signing */
+signatureCanvas.style.touchAction = "none";
+
+function getPointerPosition(e) {
+
+    const rect =
+    signatureCanvas.getBoundingClientRect();
+
+    return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+    };
+}
 
 /* =========================
    START DRAW
 ========================= */
 
 signatureCanvas.addEventListener(
-    "mousedown",
+    "pointerdown",
     (e) => {
 
         drawing = true;
 
-        const rect =
-        signatureCanvas
-        .getBoundingClientRect();
+        const pos =
+        getPointerPosition(e);
 
         ctx.beginPath();
 
         ctx.moveTo(
-            e.clientX - rect.left,
-            e.clientY - rect.top
+            pos.x,
+            pos.y
         );
-
     }
 );
 
@@ -453,23 +461,21 @@ signatureCanvas.addEventListener(
 ========================= */
 
 signatureCanvas.addEventListener(
-    "mousemove",
+    "pointermove",
     (e) => {
 
         if (!drawing)
             return;
 
-        const rect =
-        signatureCanvas
-        .getBoundingClientRect();
+        const pos =
+        getPointerPosition(e);
 
         ctx.lineTo(
-            e.clientX - rect.left,
-            e.clientY - rect.top
+            pos.x,
+            pos.y
         );
 
         ctx.stroke();
-
     }
 );
 
@@ -478,23 +484,28 @@ signatureCanvas.addEventListener(
 ========================= */
 
 signatureCanvas.addEventListener(
-    "mouseup",
+    "pointerup",
     () => {
 
         drawing = false;
-
     }
 );
 
 signatureCanvas.addEventListener(
-    "mouseleave",
+    "pointerleave",
     () => {
 
         drawing = false;
-
     }
 );
 
+signatureCanvas.addEventListener(
+    "pointercancel",
+    () => {
+
+        drawing = false;
+    }
+);
 /* =========================
    CLEAR SIGNATURE
 ========================= */
