@@ -424,23 +424,50 @@ signatureCanvas.style.touchAction = "none";
 
 function getPosition(e) {
 
-    const rect =
-    signatureCanvas.getBoundingClientRect();
+    const rect = signatureCanvas.getBoundingClientRect();
+
+    const scaleX = signatureCanvas.width / rect.width;
+    const scaleY = signatureCanvas.height / rect.height;
+
+    let clientX, clientY;
 
     if (e.touches && e.touches.length > 0) {
 
-        return {
-            x: e.touches[0].clientX - rect.left,
-            y: e.touches[0].clientY - rect.top
-        };
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+
+    } else {
+
+        clientX = e.clientX;
+        clientY = e.clientY;
 
     }
 
     return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
     };
 }
+
+function resizeSignatureCanvas() {
+
+    const rect = signatureCanvas.getBoundingClientRect();
+
+    signatureCanvas.width = rect.width;
+    signatureCanvas.height = rect.height;
+
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+}
+
+resizeSignatureCanvas();
+
+window.addEventListener(
+    "resize",
+    resizeSignatureCanvas
+);
 
 function startDrawing(e) {
 
