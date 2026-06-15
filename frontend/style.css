@@ -642,68 +642,104 @@ body {
    RESPONSIVE
 ========================= */
 
+.mobile-home {
+    display: none;
+}
+
 @media (max-width: 1200px) {
 
-  .hero h1 {
-    font-size: 44px;
-  }
+    .hero h1 {
+        font-size: 44px;
+    }
 
 }
 
 @media (max-width: 992px) {
 
-  .nav-links {
-    display: none;
-  }
+    .nav-links {
+        display: none;
+    }
 
-  .hero h1 {
-    font-size: 38px;
-  }
+    .hero h1 {
+        font-size: 38px;
+    }
 
 }
 
 @media (max-width: 768px) {
 
-  .navbar {
-    padding: 0 16px;
-  }
+    .navbar {
+        padding: 10px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
-  .hero {
-    padding-top: 50px;
-  }
+    .logo img {
+        width: 120px;
+        height: auto;
+    }
 
-  .hero h1 {
-    font-size: 32px;
-  }
+    .nav-links {
+        display: none !important;
+    }
 
-  .hero p {
-    font-size: 16px;
-  }
+    .mobile-home {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        cursor: pointer;
+        margin-left: auto;
+    }
 
-  .tools-grid {
-    grid-template-columns: 1fr;
-  }
+    .hero {
+        padding-top: 50px;
+    }
+
+    .hero h1 {
+        font-size: 32px;
+    }
+
+    .hero p {
+        font-size: 16px;
+    }
+
+    .tools-grid {
+        grid-template-columns: 1fr;
+    }
 
 }
 
 @media (max-width: 480px) {
 
-  .hero h1 {
-    font-size: 28px;
-  }
+    .navbar {
+        padding: 8px 12px;
+    }
 
-  .filter-btn {
-    font-size: 13px;
-    padding: 9px 15px;
-  }
+    .logo img {
+        width: 100px;
+        height: auto;
+    }
 
-  .tool-card {
-    padding: 20px;
-  }
+    .mobile-home {
+        font-size: 20px;
+    }
+
+    .hero h1 {
+        font-size: 28px;
+    }
+
+    .filter-btn {
+        font-size: 13px;
+        padding: 9px 15px;
+    }
+
+    .tool-card {
+        padding: 20px;
+    }
 
 }
-
-
 
 /* =========================
    FOOTER
