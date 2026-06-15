@@ -51,6 +51,7 @@ body {
     display:block;
 }
 
+
 .heart {
   color: #ef4444;
   margin-right: 4px;
@@ -637,7 +638,6 @@ body {
 
   line-height: 1.7;
 }
-
 /* =========================
    RESPONSIVE
 ========================= */
@@ -647,7 +647,9 @@ body {
 }
 
 @media (max-width: 1200px) {
-
+  .logo img{
+        height:95px;
+    }
     .hero h1 {
         font-size: 44px;
     }
@@ -659,7 +661,9 @@ body {
     .nav-links {
         display: none;
     }
-
+ .logo img{
+        height:75px;
+    }
     .hero h1 {
         font-size: 38px;
     }
@@ -675,10 +679,10 @@ body {
         align-items: center;
     }
 
-    .logo img {
-        width: 120px;
-        height: auto;
+      .logo img{
+        height:55px;
     }
+
 
     .nav-links {
         display: none !important;
@@ -717,14 +721,15 @@ body {
         padding: 8px 12px;
     }
 
-    .logo img {
-        width: 100px;
-        height: auto;
+    .logo img{
+        height:48px;
     }
+
 
     .mobile-home {
         font-size: 20px;
     }
+
 
     .hero h1 {
         font-size: 28px;
@@ -740,6 +745,8 @@ body {
     }
 
 }
+
+
 
 /* =========================
    FOOTER
