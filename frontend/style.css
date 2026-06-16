@@ -18,7 +18,7 @@ body {
   width: 100%;
   height: 72px;
   background: white;
-  border-bottom: 1px solid #e5e7eb;
+  /* border-bottom: 1px solid #e5e7eb; */
 
   display: flex;
   align-items: center;
@@ -173,7 +173,7 @@ body {
 
     background:white;
 
-    border-top:1px solid #e5e7eb;
+    /* border-top:1px solid #e5e7eb; */
 
     display:flex;
     flex-direction:column;
@@ -200,7 +200,7 @@ body {
 
     font-weight:600;
 
-    border-bottom:1px solid #f3f4f6;
+    /* border-bottom:1px solid #f3f4f6; */
 }
 
 .mobile-menu a:hover{
@@ -638,114 +638,6 @@ body {
 
   line-height: 1.7;
 }
-/* =========================
-   RESPONSIVE
-========================= */
-
-.mobile-home {
-    display: none;
-}
-
-@media (max-width: 1200px) {
-  .logo img{
-        height:95px;
-    }
-    .hero h1 {
-        font-size: 44px;
-    }
-
-}
-
-@media (max-width: 992px) {
-
-    .nav-links {
-        display: none;
-    }
- .logo img{
-        height:75px;
-    }
-    .hero h1 {
-        font-size: 38px;
-    }
-
-}
-
-@media (max-width: 768px) {
-
-    .navbar {
-        padding: 10px 16px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-      .logo img{
-        height:55px;
-    }
-
-
-    .nav-links {
-        display: none !important;
-    }
-
-    .mobile-home {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
-        cursor: pointer;
-        margin-left: auto;
-    }
-
-    .hero {
-        padding-top: 50px;
-    }
-
-    .hero h1 {
-        font-size: 32px;
-    }
-
-    .hero p {
-        font-size: 16px;
-    }
-
-    .tools-grid {
-        grid-template-columns: 1fr;
-    }
-
-}
-
-@media (max-width: 480px) {
-
-    .navbar {
-        padding: 8px 12px;
-    }
-
-    .logo img{
-        height:48px;
-    }
-
-
-    .mobile-home {
-        font-size: 20px;
-    }
-
-
-    .hero h1 {
-        font-size: 28px;
-    }
-
-    .filter-btn {
-        font-size: 13px;
-        padding: 9px 15px;
-    }
-
-    .tool-card {
-        padding: 20px;
-    }
-
-}
-
 
 
 /* =========================
@@ -894,16 +786,168 @@ body {
 
 }
 
-@media (max-width:768px){
+/* =========================
+   RESPONSIVE
+========================= */
 
-    .footer-column::before{
-        display:none;
+.mobile-home {
+    display: none;
+}
+
+/* =========================
+   LARGE TABLET / SMALL LAPTOP
+========================= */
+@media (max-width: 1200px) {
+
+    .navbar{
+        height: 88px;
+        padding: 0 24px;
+    }
+
+    .logo img{
+        height: 92px;
+    }
+
+    .hero h1{
+        font-size: 44px;
+    }
+}
+
+/* =========================
+   TABLET
+========================= */
+@media (max-width: 992px) {
+
+    .nav-links{
+        display: none;
+    }
+
+    .navbar{
+        height: 80px;
+        padding: 0 20px;
+    }
+
+    .logo img{
+        height: 84px;
+    }
+
+    .hero h1{
+        font-size: 38px;
+    }
+}
+
+/* =========================
+   MOBILE
+========================= */
+@media (max-width: 768px) {
+
+    .navbar{
+        height: 76px;
+        padding: 0 16px;
+
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .logo img{
+        height: 74px;
+    }
+
+    .nav-links{
+        display: none !important;
+    }
+
+    .mobile-home{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        cursor: pointer;
+        margin-left: auto;
+    }
+
+    /* Keep existing hero styling */
+    .hero{
+        padding-top: 50px;
+    }
+
+    .hero h1{
+        font-size: 32px;
+    }
+
+    .hero p{
+        font-size: 16px;
+    }
+
+    /* Keep existing button styling unchanged */
+
+    .tools-grid{
+        grid-template-columns: 1fr;
     }
 
     .footer-column{
-        padding-left:0;
+        padding-left: 0;
     }
 
+    .footer-column::before{
+        display: none;
+    }
+}
+
+/* =========================
+   SMALL MOBILE
+========================= */
+@media (max-width: 480px) {
+
+    .navbar{
+        height: 72px;
+        padding: 0 12px;
+    }
+
+    .logo img{
+        height: 68px;
+    }
+
+    .mobile-home{
+        font-size: 20px;
+    }
+
+    .hero h1{
+        font-size: 28px;
+    }
+
+    .hero p{
+        font-size: 14px;
+    }
+
+    .filter-btn{
+        font-size: 13px;
+        padding: 9px 15px;
+    }
+
+    .tool-card{
+        padding: 20px;
+    }
+}
+
+/* =========================
+   VERY SMALL MOBILE
+========================= */
+@media (max-width: 360px) {
+
+    .navbar{
+        height: 68px;
+        padding: 0 10px;
+    }
+
+    .logo img{
+        height: 62px;
+    }
+
+    .mobile-home{
+        font-size: 18px;
+    }
 }
 
 .login-btn{

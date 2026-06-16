@@ -10,6 +10,76 @@ body{
     color:#111827;
 }
 
+/* =========================
+   NAVBAR
+========================= */
+
+.navbar{
+    width:100%;
+    height:72px;
+    background:#ffffff;
+    border-bottom:1px solid #e5e7eb;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    padding:0 30px;
+
+    position:sticky;
+    top:0;
+    z-index:1000;
+}
+
+/* LOGO */
+
+.logo{
+    display:flex;
+    align-items:center;
+    text-decoration:none;
+}
+
+.logo img{
+    height:111px;
+    width:auto;
+    display:block;
+}
+
+/* BACK BUTTON */
+
+.back-btn{
+    text-decoration:none;
+    background:#111827;
+    color:#ffffff;
+
+    padding:12px 18px;
+    border-radius:12px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+
+    font-size:14px;
+    font-weight:600;
+
+    transition:all .3s ease;
+}
+
+.back-btn:hover{
+    background:#1f2937;
+    transform:translateY(-2px);
+}
+
+.back-btn i{
+    font-size:14px;
+    color:#ffffff;
+}
+
+.back-text{
+    display:inline;
+}
+
 .hero{
     text-align:center;
     padding:80px 20px 50px;
@@ -47,7 +117,7 @@ body{
     font-size:18px;
 }
 
-.back-btn{
+.back-to-btn{
     display:inline-block;
 
     margin-top:30px;
@@ -66,7 +136,7 @@ body{
     transition:.3s;
 }
 
-.back-btn:hover{
+.back-to-btn:hover{
     background:#000;
 }
 
@@ -175,22 +245,6 @@ body{
 
 .card-yellow{
     border-top:4px solid #eab308;
-}
-
-@media(max-width:768px){
-
-    .hero{
-        padding:60px 20px 40px;
-    }
-
-    .hero h1{
-        font-size:36px;
-    }
-
-    .hero p{
-        font-size:16px;
-    }
-
 }
 
 
@@ -303,51 +357,182 @@ body{
 
     background:rgba(255,255,255,0.12);
 }
-@media (max-width: 992px){
 
-    .footer-container{
 
-        grid-template-columns:
-        repeat(2,1fr);
+/* =========================
+   LARGE TABLET / SMALL LAPTOP
+========================= */
+@media (max-width:1200px){
+
+     .navbar{
+        height: 88px;
+        padding: 0 24px;
     }
 
+    .logo img{
+        height: 92px;
+    }
+
+    .hero h1{
+        font-size:52px;
+    }
 }
-@media (max-width: 768px){
+
+
+/* =========================
+   TABLET
+========================= */
+@media (max-width:992px){
+
+   .navbar{
+        height: 80px;
+        padding: 0 20px;
+    }
+
+    .logo img{
+        height: 84px;
+    }
+
+    .back-btn{
+        padding:10px 16px;
+        font-size:14px;
+    }
+
+    .hero h1{
+        font-size:44px;
+    }
+
+    .hero p{
+        font-size:18px;
+    }
 
     .footer-container{
+        grid-template-columns:repeat(2,1fr);
+        gap:30px;
+    }
+}
+/* =========================
+   MOBILE
+========================= */
+@media (max-width:768px){
 
+   .navbar{
+        height: 76px;
+        padding: 0 16px;
+    }
+
+    .logo img{
+        height: 74px;
+    }
+
+    .back-btn{
+        width:42px;
+        height:42px;
+
+        padding:0;
+
+        border-radius:12px;
+
+        display:flex;
+        align-items:center;
+        justify-content:center;
+    }
+
+    .back-text{
+        display:none;
+    }
+
+    .back-btn i{
+        font-size:18px;
+        color:#ffffff;
+    }
+
+    .hero{
+        padding:50px 20px 35px;
+    }
+
+    .hero h1{
+        font-size:32px;
+    }
+
+    .hero p{
+        font-size:15px;
+    }
+
+    .tools-grid-page{
         grid-template-columns:1fr;
+        gap:15px;
+    }
 
+    .tool-item{
+        min-height:80px;
+        font-size:15px;
+        padding:16px;
+    }
+
+    .footer-container{
+        grid-template-columns:1fr;
         text-align:center;
     }
 
-    .footer-brand p{
-
-        max-width:100%;
-
-        margin:auto;
+    .footer-brand img{
+        height:60px;
     }
 
-   .footer-brand img{
-    height:50px;
-
-    background:white;
-
-    padding:8px;
-
-    border-radius:10px;
-}
-
-}
-
-@media (max-width:768px){
-
-    .footer-column::before{
-        display:none;
+    .footer-brand p{
+        max-width:100%;
+        margin:auto;
     }
 
     .footer-column{
         padding-left:0;
     }
 
+    .footer-column::before{
+        display:none;
+    }
+}
+
+/* =========================
+   SMALL MOBILE
+========================= */
+@media (max-width:480px){
+
+    .navbar{
+        height: 72px;
+        padding: 0 12px;
+    }
+
+    .logo img{
+        height: 68px;
+    }
+
+    .back-btn{
+        width:38px;
+        height:38px;
+        padding:0;
+        border-radius:10px;
+    }
+
+    .back-btn i{
+        font-size:16px;
+    }
+
+    .hero h1{
+        font-size:28px;
+    }
+
+    .hero p{
+        font-size:14px;
+    }
+
+    .tool-item{
+        min-height:75px;
+        font-size:14px;
+        padding:14px;
+    }
+
+    .footer-bottom p{
+        font-size:13px;
+    }
 }
