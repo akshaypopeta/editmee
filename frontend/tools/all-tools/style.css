@@ -387,12 +387,12 @@ body{
 @media (max-width:768px){
 
     .navbar{
-        height:60px;
+        height:70px;
         padding:0 15px;
     }
 
     .logo img{
-        height:55px;
+        height:70px;
     }
 
     .back-btn{
@@ -469,12 +469,12 @@ body{
 @media (max-width:480px){
 
     .navbar{
-        height:55px;
+        height:62px;
         padding:0 12px;
     }
 
     .logo img{
-        height:48px;
+        height:62px;
     }
 
     .back-btn{
