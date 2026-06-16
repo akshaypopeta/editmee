@@ -140,24 +140,7 @@ body{
     margin-bottom:10px;
 }
 
-/* MOBILE */
 
-@media(max-width:768px){
-
-    .hero h1{
-        font-size:38px;
-    }
-
-    .logo img{
-        height:36px;
-    }
-
-    .back-btn{
-        padding:8px 12px;
-        font-size:13px;
-    }
-
-}
 /* =========================
    FOOTER
 ========================= */
