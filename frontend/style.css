@@ -857,18 +857,7 @@ body {
 
      .hero{
         padding: 60px 30px 70px;
-        background:
-        radial-gradient(
-            circle at top center,
-            rgba(220,38,38,0.40),
-            transparent 40%
-        ),
-        linear-gradient(
-            180deg,
-            #111111,
-            #1a1a1a,
-            #0a0a0a
-        );
+      
     }
 
     .hero-content{
@@ -883,7 +872,7 @@ body {
         line-height: 1.15;
         font-weight: 800;
         letter-spacing: -0.5px;
-        color: #ffffff;
+        color: #000000;
         max-width: 700px;
         margin: 0 auto 20px;
     }
@@ -926,18 +915,7 @@ body {
 
  .hero{
         padding: 50px 25px 60px;
-        background:
-        radial-gradient(
-            circle at top center,
-            rgba(220,38,38,0.40),
-            transparent 40%
-        ),
-        linear-gradient(
-            180deg,
-            #111111,
-            #1a1a1a,
-            #0a0a0a
-        );
+       
     }
 
     .hero-content{
@@ -952,7 +930,7 @@ body {
         line-height: 1.18;
         font-weight: 800;
         letter-spacing: -0.5px;
-        color: #ffffff;
+        color: #000000;
         max-width: 550px;
         margin: 0 auto 18px;
     }
@@ -1009,18 +987,7 @@ body {
     /* Keep existing hero styling */
      .hero{
         padding: 40px 20px 50px;
-      background:
-        radial-gradient(
-            circle at top center,
-            rgba(220,38,38,0.40),
-            transparent 40%
-        ),
-        linear-gradient(
-            180deg,
-            #111111,
-            #1a1a1a,
-            #0a0a0a
-        );
+    
     }
 
     .hero-content{
@@ -1035,7 +1002,7 @@ body {
         line-height: 1.2;
         font-weight: 800;
         letter-spacing: -0.5px;
-        color: #ffffff;
+        color: #000000;
         max-width: 360px;
         margin: 0 auto 15px;
     }
@@ -1092,18 +1059,7 @@ body {
 
    .hero{
         padding: 35px 18px 45px;
-       background:
-        radial-gradient(
-            circle at top center,
-            rgba(220,38,38,0.40),
-            transparent 40%
-        ),
-        linear-gradient(
-            180deg,
-            #111111,
-            #1a1a1a,
-            #0a0a0a
-        );
+   
     }
 
     .hero-content{
@@ -1118,7 +1074,7 @@ body {
         line-height: 1.2;
         font-weight: 800;
         letter-spacing: -0.5px;
-        color: #ffffff;
+        color: #000000;
         max-width: 320px;
         margin: 0 auto 15px;
     }
@@ -1163,18 +1119,7 @@ body {
 
     .hero{
         padding: 30px 15px 40px;
-       background:
-        radial-gradient(
-            circle at top center,
-            rgba(220,38,38,0.40),
-            transparent 40%
-        ),
-        linear-gradient(
-            180deg,
-            #111111,
-            #1a1a1a,
-            #0a0a0a
-        );
+     
     }
 
     .hero-content{
@@ -1189,7 +1134,7 @@ body {
         line-height: 1.25;
         font-weight: 800;
         letter-spacing: -0.5px;
-        color: #ffffff;
+        color: #000000;
         max-width: 280px;
         margin: 0 auto 15px;
     }
