@@ -866,11 +866,11 @@ body{
         padding: 35px 30px 35px;
     }
 
-    .hero h1{
-        font-size: 40px;
-        line-height: 1.15;
-        max-width: 700px;
-        margin: 0 auto 12px;
+     .hero h1{
+        font-size:40px;
+        line-height:1.15;
+        max-width:800px;
+        margin:0 auto 12px;
     }
 
     .hero p{
@@ -915,11 +915,11 @@ body{
         padding: 28px 25px 30px;
     }
 
-    .hero h1{
-        font-size: 34px;
-        line-height: 1.18;
-        max-width: 550px;
-        margin: 0 auto 10px;
+     .hero h1{
+        font-size:34px;
+        line-height:1.18;
+        max-width:680px;
+        margin:0 auto 12px;
     }
 
     .hero p{
@@ -977,12 +977,12 @@ body{
     padding: 20px 20px 25px;
 }
 
-.hero h1{
-    font-size: 26px;
-    line-height: 1.15;
-    max-width: 360px;
-    margin: 0 auto 10px;
-}
+  .hero h1{
+        font-size:28px;
+        line-height:1.2;
+        max-width:500px;
+        margin:0 auto 10px;
+    }
 
 .hero p{
     font-size: 14px;
@@ -1039,11 +1039,12 @@ body{
     padding: 15px 18px 22px;
 }
 
-.hero h1{
-    font-size: 24px;
-    max-width: 320px;
-    margin: 0 auto 10px;
-}
+ .hero h1{
+        font-size:24px;
+        line-height:1.2;
+        max-width:370px;
+        margin:0 auto 10px;
+    }
 
 .hero p{
     margin: 0 auto 14px;
@@ -1085,9 +1086,12 @@ body{
     padding: 12px 15px 20px;
 }
 
-.hero h1{
-    margin: 0 auto 8px;
-}
+ .hero h1{
+        font-size:22px;
+        line-height:1.25;
+        max-width:320px;
+        margin:0 auto 8px;
+    }
 
 .hero p{
     margin: 0 auto 12px;
