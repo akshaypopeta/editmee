@@ -860,39 +860,32 @@ body{
         height: 92px;
     }
 
-     .hero{
-        padding: 60px 30px 70px;
-      
-    }
+  @media (max-width: 1200px){
 
-    .hero-content{
-        max-width: 100%;
-        padding: 0 10px;
-        margin: 0 auto;
-        text-align: center;
+    .hero{
+        padding: 35px 30px 35px;
     }
 
     .hero h1{
         font-size: 40px;
         line-height: 1.15;
-        font-weight: 800;
-        letter-spacing: -0.5px;
-        color: #000000;
         max-width: 700px;
-        margin: 0 auto 20px;
+        margin: 0 auto 12px;
     }
 
     .hero p{
         font-size: 18px;
-        line-height: 1.7;
+        line-height: 1.65;
         max-width: 650px;
-        margin: 0 auto 30px;
+        margin: 0 auto 18px;
     }
 
     .filters-section{
-        gap: 14px;
-        justify-content: center;
+        margin-top: 0;
+        margin-bottom: 30px;
+        gap: 12px;
     }
+}
 
     .filter-btn{
         padding: 12px 24px;
@@ -918,38 +911,28 @@ body{
         height: 84px;
     }
 
- .hero{
-        padding: 50px 25px 60px;
-       
-    }
-
-    .hero-content{
-        max-width: 100%;
-        padding: 0 10px;
-        margin: 0 auto;
-        text-align: center;
+  .hero{
+        padding: 28px 25px 30px;
     }
 
     .hero h1{
         font-size: 34px;
         line-height: 1.18;
-        font-weight: 800;
-        letter-spacing: -0.5px;
-        color: #000000;
         max-width: 550px;
-        margin: 0 auto 18px;
+        margin: 0 auto 10px;
     }
 
     .hero p{
         font-size: 17px;
-        line-height: 1.7;
+        line-height: 1.65;
         max-width: 580px;
-        margin: 0 auto 28px;
+        margin: 0 auto 16px;
     }
 
     .filters-section{
-        gap: 12px;
-        justify-content: center;
+        margin-top: 0;
+        margin-bottom: 28px;
+        gap: 10px;
     }
 
     .filter-btn{
@@ -990,39 +973,29 @@ body{
     }
 
     /* Keep existing hero styling */
-     .hero{
-        padding: 40px 20px 50px;
-    
-    }
+  .hero{
+    padding: 20px 20px 25px;
+}
 
-    .hero-content{
-        max-width: 100%;
-        padding: 0 10px;
-        margin: 0 auto;
-        text-align: center;
-    }
+.hero h1{
+    font-size: 26px;
+    line-height: 1.15;
+    max-width: 360px;
+    margin: 0 auto 10px;
+}
 
-    .hero h1{
-        font-size: 26px;
-        line-height: 1.2;
-        font-weight: 800;
-        letter-spacing: -0.5px;
-        color: #000000;
-        max-width: 360px;
-        margin: 0 auto 15px;
-    }
-    
-    .hero p{
-        font-size: 14px;
-        line-height: 1.6;
-        max-width: 320px;
-        margin: 0 auto 22px;
-    }
+.hero p{
+    font-size: 14px;
+    line-height: 1.55;
+    max-width: 320px;
+    margin: 0 auto 15px;
+}
 
-     .filters-section{
-        gap: 10px;
-        justify-content: center;
-    }
+.filters-section{
+    margin-top: 0;
+    margin-bottom: 25px;
+    gap: 10px;
+}
 
     .filter-btn{
         padding: 10px 18px;
@@ -1062,37 +1035,23 @@ body{
         font-size: 20px;
     }
 
-   .hero{
-        padding: 35px 18px 45px;
-   
-    }
+ .hero{
+    padding: 15px 18px 22px;
+}
 
-    .hero-content{
-        max-width: 100%;
-        padding: 0 10px;
-        margin: 0 auto;
-        text-align: center;
-    }
+.hero h1{
+    font-size: 24px;
+    max-width: 320px;
+    margin: 0 auto 10px;
+}
 
-    .hero h1{
-        font-size: 24px;
-        line-height: 1.2;
-        font-weight: 800;
-        letter-spacing: -0.5px;
-        color: #000000;
-        max-width: 320px;
-        margin: 0 auto 15px;
-    }
-      .hero p{
-        font-size: 14px;
-        line-height: 1.6;
-        max-width: 320px;
-        margin: 0 auto 22px;
-    }
+.hero p{
+    margin: 0 auto 14px;
+}
 
-    .filters-section{
-        gap: 8px;
-    }
+.filters-section{
+    margin-bottom: 22px;
+}
 
     .filter-btn{
         padding: 9px 16px;
@@ -1122,37 +1081,21 @@ body{
         font-size: 18px;
     }
 
-    .hero{
-        padding: 30px 15px 40px;
-     
-    }
+ .hero{
+    padding: 12px 15px 20px;
+}
 
-    .hero-content{
-        max-width: 100%;
-        padding: 0 10px;
-        margin: 0 auto;
-        text-align: center;
-    }
+.hero h1{
+    margin: 0 auto 8px;
+}
 
-    .hero h1{
-        font-size: 22px;
-        line-height: 1.25;
-        font-weight: 800;
-        letter-spacing: -0.5px;
-        color: #000000;
-        max-width: 280px;
-        margin: 0 auto 15px;
-    }
-      .hero p{
-        font-size: 13px;
-        line-height: 1.6;
-        max-width: 280px;
-        margin: 0 auto 20px;
-    }
+.hero p{
+    margin: 0 auto 12px;
+}
 
-    .filters-section{
-        gap: 6px;
-    }
+.filters-section{
+    margin-bottom: 20px;
+}
 
     .filter-btn{
         padding: 8px 14px;
