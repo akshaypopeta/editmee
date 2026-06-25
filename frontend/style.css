@@ -658,7 +658,7 @@ body{
 
     color:#fff;
 
-    margin-top:80px;
+    margin-top:40px;
 }
 
 .footer-container{
@@ -838,6 +838,552 @@ body{
     border-radius:10px;
 }
 
+}
+
+/* =========================
+   HOMEPAGE CONTENT
+========================= */
+
+.homepage-content{
+    width:100%;
+    margin-top:40px;
+    overflow:hidden;
+ 
+   
+}
+
+/* =========================
+   HERO
+========================= */
+
+.content-hero{
+
+    max-width:1500px;
+    margin:0 auto 70px;
+
+    padding:100px 40px;
+
+    text-align:center;
+
+    border-radius:36px;
+
+ 
+
+    position:relative;
+    overflow:hidden;
+
+    box-shadow:
+    0 30px 80px rgba(185,28,28,.25);
+}
+
+.content-hero::before{
+    content:"";
+    position:absolute;
+    width:500px;
+    height:500px;
+    border-radius:50%;
+    background:rgba(255,255,255,.08);
+    top:-220px;
+    right:-100px;
+    filter:blur(90px);
+}
+
+.content-hero::after{
+    content:"";
+    position:absolute;
+    width:420px;
+    height:420px;
+    border-radius:50%;
+    background:rgba(255,255,255,.05);
+    bottom:-180px;
+    left:-100px;
+    filter:blur(90px);
+}
+
+.content-hero h2{
+    position:relative;
+    z-index:2;
+
+    font-size:58px;
+    font-weight:800;
+    line-height:1.2;
+
+    color: #000000;
+
+    margin-bottom:25px;
+}
+
+.content-hero p{
+    position:relative;
+    z-index:2;
+
+    max-width:950px;
+    margin:auto;
+
+    color:#000000;
+
+    font-size:19px;
+    line-height:2;
+}
+
+/* =========================
+   SECTION
+========================= */
+
+.content-section{
+    width:100%;
+    padding:90px 30px;
+    position:relative;
+}
+
+.content-section:nth-child(even){
+    background:
+    linear-gradient(
+        180deg,
+        #ffffff,
+        #fff5f5
+    );
+}
+
+/* =========================
+   SECTION TITLE
+========================= */
+
+.section-title{
+    max-width:1400px;
+    margin:auto;
+    text-align:center;
+    margin-bottom:60px;
+}
+
+.section-title h2{
+
+    display:inline-block;
+
+    padding:15px 34px;
+
+    border-radius:999px;
+
+    background:
+    linear-gradient(
+        135deg,
+        #ff5a5a 0%,
+        #ff4b4b 35%,
+        #ef4444 70%,
+        #dc2626 100%
+    );
+
+    color:#ffffff;
+
+    font-size:34px;
+    font-weight:800;
+
+    margin-bottom:18px;
+
+    box-shadow:
+    0 15px 40px rgba(220,38,38,.25);
+}
+
+.section-title p{
+    font-size:18px;
+    color:#64748b;
+    max-width:750px;
+    margin:auto;
+    line-height:1.9;
+}
+
+/* =========================
+   CARDS GRID
+========================= */
+
+.content-cards{
+
+    max-width:1400px;
+    margin:auto;
+
+    display:grid;
+
+    grid-template-columns:
+    repeat(auto-fit,minmax(320px,1fr));
+
+    gap:30px;
+}
+
+/* =========================
+   PREMIUM TOOL CARD
+========================= */
+
+.content-card{
+
+    background:
+    linear-gradient(
+        180deg,
+        #ffffff,
+        #fff7f7
+    );
+
+    padding:35px;
+
+    border-radius:28px;
+
+    border:1px solid #fee2e2;
+
+    position:relative;
+
+    overflow:hidden;
+
+    transition:all .35s ease;
+
+    box-shadow:
+    0 12px 30px rgba(220,38,38,.06);
+}
+
+.content-card::before{
+
+    content:"";
+
+    position:absolute;
+
+    top:0;
+    left:0;
+
+    width:100%;
+    height:6px;
+
+    background:
+    linear-gradient(
+        90deg,
+        #991b1b,
+        #dc2626,
+        #ef4444
+    );
+}
+
+.content-card::after{
+
+    content:"";
+
+    position:absolute;
+
+    top:0;
+    left:-120%;
+
+    width:90px;
+    height:100%;
+
+    background:
+    linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,255,255,.6),
+        transparent
+    );
+
+    transition:.9s;
+}
+
+.content-card:hover::after{
+    left:130%;
+}
+
+.content-card:hover{
+
+    transform:
+    translateY(-10px);
+
+    box-shadow:
+    0 30px 60px rgba(220,38,38,.18);
+
+    border-color:#ef4444;
+}
+
+.content-card h3{
+    margin-bottom:18px;
+}
+
+.content-card h3 a{
+
+    text-decoration:none;
+
+    color:#111827;
+
+    font-size:24px;
+    font-weight:800;
+
+    transition:.3s;
+}
+
+.content-card:hover h3 a{
+    color:#dc2626;
+}
+
+.content-card p{
+    color:#64748b;
+    line-height:1.9;
+    font-size:16px;
+}
+
+/* =========================
+   SECTION TEXT
+========================= */
+
+.section-text{
+
+    max-width:1200px;
+
+    margin:50px auto 0;
+
+    text-align:center;
+
+    background:
+    linear-gradient(
+        180deg,
+        #ffffff,
+        #fff7f7
+    );
+
+    padding:40px;
+
+    border-radius:24px;
+
+    border:1px solid #fee2e2;
+
+    box-shadow:
+    0 12px 30px rgba(220,38,38,.06);
+
+    font-size:17px;
+    line-height:2;
+    color:#475569;
+}
+
+/* =========================
+   FEATURES
+========================= */
+
+.feature-grid{
+
+    max-width:1300px;
+
+    margin:auto;
+
+    display:grid;
+
+    grid-template-columns:
+    repeat(auto-fit,minmax(220px,1fr));
+
+    gap:22px;
+}
+
+.feature-box{
+
+    background:
+    linear-gradient(
+        180deg,
+        #ffffff,
+        #fff7f7
+    );
+
+    border-radius:22px;
+
+    padding:30px;
+
+    text-align:center;
+
+    font-weight:700;
+
+    color:#111827;
+
+    border:1px solid #fee2e2;
+
+    transition:.35s;
+
+    position:relative;
+
+    overflow:hidden;
+
+    box-shadow:
+    0 10px 25px rgba(220,38,38,.05);
+}
+
+.feature-box:hover{
+
+    transform:translateY(-8px);
+
+    background:
+   
+
+ linear-gradient(
+        135deg,
+        #dc2626 0%,
+         #ff5a5a 35%,
+        #ef4444 70%,
+        #991b1b 100%
+    );
+
+    color:#ffffff;
+
+    border-color:transparent;
+
+    box-shadow:
+    0 25px 50px rgba(220,38,38,.25);
+}
+
+/* =========================
+   SPECIAL PRIVACY CARD
+========================= */
+
+.privacy-card{
+
+    max-width:1300px;
+    margin:auto;
+
+    background:
+    linear-gradient(
+        135deg,
+        #7f1d1d,
+        #991b1b,
+        #b91c1c
+    );
+
+    color:white;
+
+    padding:55px;
+
+    border-radius:30px;
+
+    box-shadow:
+    0 30px 70px rgba(185,28,28,.30);
+}
+
+.privacy-card h3{
+    color:#ffffff;
+    margin-bottom:20px;
+    font-size:30px;
+}
+
+.privacy-card p{
+    color:#fee2e2;
+    line-height:2;
+    font-size:17px;
+}
+
+/* =========================
+   LINKS
+========================= */
+
+.content-card a,
+.section-text a{
+    color:#dc2626;
+    font-weight:700;
+    text-decoration:none;
+}
+
+.content-card a:hover,
+.section-text a:hover{
+    text-decoration:underline;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media(max-width:1200px){
+
+    .content-hero h2{
+        font-size:48px;
+    }
+}
+
+@media(max-width:992px){
+
+    .content-hero h2{
+        font-size:42px;
+    }
+
+    .section-title h2{
+        font-size:28px;
+    }
+}
+
+@media(max-width:768px){
+
+    .homepage-content{
+        margin-top:10px;
+    }
+
+    .content-hero{
+        padding:70px 20px;
+        border-radius:25px;
+        margin:0 15px 50px;
+    }
+
+    .content-hero h2{
+        font-size:34px;
+    }
+
+    .content-hero p{
+        font-size:16px;
+        line-height:1.9;
+    }
+
+    .content-section{
+        padding:70px 20px;
+    }
+
+    .content-card{
+        padding:28px;
+    }
+
+    .section-text{
+        padding:25px;
+        font-size:16px;
+    }
+
+    .privacy-card{
+        padding:35px 25px;
+    }
+}
+
+@media(max-width:480px){
+
+    .content-hero h2{
+        font-size:28px;
+    }
+
+    .content-hero p{
+        font-size:15px;
+    }
+
+    .section-title h2{
+        font-size:22px;
+        padding:12px 20px;
+    }
+
+    .section-title p{
+        font-size:15px;
+    }
+
+    .content-card h3 a{
+        font-size:20px;
+    }
+
+    .content-card{
+        border-radius:22px;
+        padding:24px;
+    }
+
+    .section-text{
+        padding:22px;
+        font-size:15px;
+    }
+
+    .privacy-card{
+        padding:30px 20px;
+    }
+
+    .privacy-card h3{
+        font-size:24px;
+    }
 }
 
 /* =========================
