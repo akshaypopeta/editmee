@@ -536,7 +536,7 @@ body{
 
 .tools-section {
   width: 100%;
-  padding: 0 24px 60px;
+  padding: 0 24px 20px;
 }
 
 .tools-grid {
@@ -904,7 +904,7 @@ body{
     position:relative;
     z-index:2;
 
-    font-size:58px;
+    font-size:40px;
     font-weight:800;
     line-height:1.2;
 
@@ -1289,13 +1289,40 @@ body{
 
 @media(max-width:1200px){
 
+      .content-section{
+        width:100%;
+        padding:80px 28px;
+        position:relative;
+    }
+
+    .content-section:nth-child(even){
+        background: linear-gradient(
+            180deg,
+            #fcfcfa 0%,
+            #f6f4f1 45%,
+            #eeebe6 100%
+        );
+    }
     .content-hero h2{
         font-size:48px;
     }
 }
 
 @media(max-width:992px){
+   .content-section{
+        width:100%;
+        padding:70px 24px;
+        position:relative;
+    }
 
+    .content-section:nth-child(even){
+        background: linear-gradient(
+            180deg,
+            #fcfcfa 0%,
+            #f6f4f1 45%,
+            #eeebe6 100%
+        );
+    }
     .content-hero h2{
         font-size:42px;
     }
@@ -1326,8 +1353,19 @@ body{
         line-height:1.9;
     }
 
-    .content-section{
-        padding:70px 20px;
+     .content-section{
+        width:100%;
+        padding:60px 20px;
+        position:relative;
+    }
+
+    .content-section:nth-child(even){
+        background: linear-gradient(
+            180deg,
+            #fcfcfa 0%,
+            #f6f4f1 45%,
+            #eeebe6 100%
+        );
     }
 
     .content-card{
@@ -1346,12 +1384,29 @@ body{
 
 @media(max-width:480px){
 
+      .content-section{
+        width:100%;
+        padding:50px 16px;
+        position:relative;
+    }
+
+    .content-section:nth-child(even){
+        background: linear-gradient(
+            180deg,
+            #fcfcfa 0%,
+            #f6f4f1 45%,
+            #eeebe6 100%
+        );
+    }
+
     .content-hero h2{
-        font-size:28px;
+        font-size:24px;
     }
 
     .content-hero p{
         font-size:15px;
+        margin:0 auto;
+
     }
 
     .section-title h2{
