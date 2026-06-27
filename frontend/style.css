@@ -647,6 +647,188 @@ body{
   line-height: 1.7;
 }
 
+/* ==========================================
+        FAQ SECTION
+========================================== */
+
+.faq-wrapper{
+    width:100%;
+    max-width:1100px;
+    margin:50px auto 0;
+}
+
+.faq-item{
+    width:100%;
+    background:#fff;
+    border:1px solid #f6d7d7;
+    border-radius:22px;
+    margin-bottom:22px;
+    overflow:hidden;
+    box-shadow:0 8px 28px rgba(255,60,60,.08);
+    transition:all .35s ease;
+}
+
+.faq-item:hover{
+    transform:translateY(-3px);
+    box-shadow:0 14px 36px rgba(255,60,60,.12);
+}
+
+.faq-item summary{
+    list-style:none;
+    cursor:pointer;
+    padding:28px 32px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:22px;
+    font-weight:700;
+    color:#1f2937;
+    transition:.3s;
+}
+
+.faq-item summary::-webkit-details-marker{
+    display:none;
+}
+
+.faq-item summary::after{
+    content:"+";
+    font-size:34px;
+    font-weight:300;
+    color:#ff4747;
+    transition:.3s;
+}
+
+.faq-item[open] summary::after{
+    content:"−";
+}
+
+.faq-item p{
+    padding:0 32px 30px;
+    font-size:17px;
+    line-height:1.9;
+    color:#4b5563;
+}
+
+/* ==========================================
+            1200px
+========================================== */
+
+@media(max-width:1200px){
+
+.faq-wrapper{
+    max-width:1000px;
+}
+
+.faq-item summary{
+    font-size:21px;
+    padding:26px 30px;
+}
+
+.faq-item p{
+    font-size:16px;
+    padding:0 30px 28px;
+}
+
+}
+
+/* ==========================================
+            992px
+========================================== */
+
+@media(max-width:992px){
+
+.faq-wrapper{
+    max-width:100%;
+}
+
+.faq-item{
+    border-radius:20px;
+}
+
+.faq-item summary{
+    padding:24px 26px;
+    font-size:20px;
+}
+
+.faq-item summary::after{
+    font-size:30px;
+}
+
+.faq-item p{
+    padding:0 26px 24px;
+    font-size:16px;
+    line-height:1.8;
+}
+
+}
+
+/* ==========================================
+            768px
+========================================== */
+
+@media(max-width:768px){
+
+.faq-wrapper{
+    margin-top:40px;
+}
+
+.faq-item{
+    border-radius:18px;
+    margin-bottom:18px;
+}
+
+.faq-item summary{
+    padding:20px;
+    font-size:18px;
+    line-height:1.5;
+}
+
+.faq-item summary::after{
+    font-size:28px;
+}
+
+.faq-item p{
+    padding:0 20px 20px;
+    font-size:15px;
+    line-height:1.8;
+}
+
+}
+
+/* ==========================================
+            480px
+========================================== */
+
+@media(max-width:480px){
+
+.faq-wrapper{
+    margin-top:30px;
+}
+
+.faq-item{
+    border-radius:16px;
+    margin-bottom:16px;
+}
+
+.faq-item summary{
+    padding:18px;
+    font-size:16px;
+    line-height:1.5;
+    gap:12px;
+}
+
+.faq-item summary::after{
+    font-size:24px;
+    flex-shrink:0;
+}
+
+.faq-item p{
+    padding:0 18px 18px;
+    font-size:14px;
+    line-height:1.7;
+}
+
+}
 
 /* =========================
    FOOTER
