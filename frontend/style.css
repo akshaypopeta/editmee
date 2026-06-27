@@ -1655,7 +1655,7 @@ body{
         font-size:40px;
         line-height:1.15;
         max-width:800px;
-        margin:0 auto 12px;
+        margin: 15px auto 18px;
     }
 
     .hero p{
@@ -1704,7 +1704,7 @@ body{
         font-size:34px;
         line-height:1.18;
         max-width:680px;
-        margin:0 auto 12px;
+        margin:15 auto 18px;
     }
 
     .hero p{
@@ -1766,7 +1766,7 @@ body{
         font-size:28px;
         line-height:1.2;
         max-width:500px;
-        margin:0 auto 10px;
+        margin:15px auto 18px;
     }
 
 .hero p{
@@ -1828,7 +1828,7 @@ body{
         font-size:24px;
         line-height:1.2;
         max-width:370px;
-        margin:0 auto 10px;
+        margin:15px auto 18px;
     }
 
 .hero p{
@@ -1875,7 +1875,7 @@ body{
         font-size:22px;
         line-height:1.25;
         max-width:320px;
-        margin:0 auto 8px;
+        margin:15px auto 18px;
     }
 
 .hero p{
