@@ -93,7 +93,7 @@ const tools = [
   description: "Reduce the file size of your images without losing quality.",
   icon: "fa-solid fa-compress",
   color: "green",
-  link: "tools/image_compressor/index.html"
+  link: "tools/image-compressor/index.html"
 }
 
   // ,{
