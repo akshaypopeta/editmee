@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <!-- ===========================
+         META
+    ============================ -->
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <meta
+        http-equiv="X-UA-Compatible"
+        content="IE=edge">
+
+    <title>Edit PDF | EditMee</title>
+
+    <meta
+        name="description"
+        content="Edit PDF online for free. Add text, images, drawings, signatures, shapes and more directly in your browser.">
+
+    <meta
+        name="theme-color"
+        content="#ffffff">
+
+    <!-- ===========================
+         FONTS
+    ============================ -->
+
+    <link rel="preconnect"
+        href="https://fonts.googleapis.com">
+
+    <link rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- ===========================
+         STYLES
+    ============================ -->
+
+    <link
+        rel="stylesheet"
+        href="style.css">
+
+    <link
+        rel="stylesheet"
+        href="css/layout.css">
+
+    <link
+        rel="stylesheet"
+        href="css/toolbar.css">
+
+    <link
+        rel="stylesheet"
+        href="css/sidebar.css">
+
+    <link
+        rel="stylesheet"
+        href="css/viewer.css">
+
+    <link
+        rel="stylesheet"
+        href="css/responsive.css">
+
+<link rel="stylesheet" href="css/search.css">
+
+</head>
+
+<body>
+
+    <!-- =====================================================
+                         APPLICATION
+    ====================================================== -->
+
+    <div class="app">
+
+        <!-- =====================================================
+                            HEADER
+        ====================================================== -->
+
+        <header class="header">
+
+            <!-- Logo -->
+
+            <div class="header-left">
+
+                <a href="index.html" class="logo">
+    <img src="../../assets/images/editmee_logo.png" alt="EditMee Logo">
+</a>
+
+            </div>
+
+            <!-- Toolbar -->
+
+            <div class="toolbar">
+
+                <!-- Upload -->
+
+                <button
+                    class="tool-btn primary"
+                    id="uploadButton">
+
+                    Upload PDF
+
+                </button>
+
+                <!-- Divider -->
+
+                <div class="divider"></div>
+
+                <!-- Save -->
+
+                <button
+                    class="tool-btn"
+                    id="saveButton">
+
+                    Save
+
+                </button>
+
+                <!-- Undo -->
+
+                <button
+                    class="tool-btn"
+                    id="undoButton">
+
+                    Undo
+
+                </button>
+
+                <!-- Redo -->
+
+                <button
+                    class="tool-btn"
+                    id="redoButton">
+
+                    Redo
+
+                </button>
+
+                <div class="divider"></div>
+
+                <!-- Zoom -->
+
+                <button
+                    class="tool-btn"
+                    id="zoomOut">
+
+                    −
+
+                </button>
+
+                <span
+                    class="zoom-level"
+                    id="zoomValue">
+
+                    100%
+
+                </span>
+
+                <button
+                    class="tool-btn"
+                    id="zoomIn">
+
+                    +
+
+                </button>
+
+                <div class="divider"></div>
+
+                <!-- Text -->
+
+                <button
+                    class="tool-btn"
+                    id="textTool">
+
+                    Text
+
+                </button>
+
+                <!-- Draw -->
+
+                <button
+                    class="tool-btn"
+                    id="drawTool">
+
+                    Draw
+
+                </button>
+
+                <!-- Highlight -->
+
+                <button
+                    class="tool-btn"
+                    id="highlightTool">
+
+                    Highlight
+
+                </button>
+
+                <!-- Shapes -->
+
+                <button
+                    class="tool-btn"
+                    id="shapeTool">
+
+                    Shapes
+
+                </button>
+
+                <!-- Image -->
+
+                <button
+                    class="tool-btn"
+                    id="imageTool">
+
+                    Image
+
+                </button>
+
+                <!-- Signature -->
+
+                <button
+                    class="tool-btn"
+                    id="signatureTool">
+
+                    Sign
+
+                </button>
+
+            </div>
+
+        </header>
+
+        <!-- =====================================================
+                           MAIN
+        ====================================================== -->
+
+        <main class="main">
+
+            <!-- ==============================================
+                           SIDEBAR
+            =============================================== -->
+
+            <aside class="sidebar">
+
+                <!-- Sidebar Header -->
+
+                <div class="sidebar-header">
+
+                    <h2>
+
+                        Pages
+
+                    </h2>
+
+                </div>
+
+                <!-- Upload Shortcut -->
+
+                <button
+                    class="sidebar-upload"
+                    id="sidebarUpload">
+
+                    + Upload PDF
+
+                </button>
+
+                <!-- Thumbnail List -->
+
+                <div
+                    class="thumbnail-list"
+                    id="thumbnailList">
+
+                    <!-- Empty -->
+
+                    <div class="sidebar-empty">
+
+                        <div class="sidebar-empty-icon">
+
+                            📄
+
+                        </div>
+
+                        <p>
+
+                            Pages will appear here
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </aside>
+
+            <!-- ==============================================
+                            VIEWER
+            =============================================== -->
+
+            <section class="viewer">
+
+                <div
+                    class="viewer-scroll">
+
+                    <!-- Upload Area -->
+
+                    <div
+                        class="upload-card"
+                        id="uploadCard">
+
+                        <div class="upload-icon">
+
+                            📄
+
+                        </div>
+
+                        <h1>
+
+                            Edit PDF
+
+                        </h1>
+
+                        <p>
+
+                            Drag & Drop your PDF here
+
+                        </p>
+
+                        <span>
+
+                            or
+
+                        </span>
+
+                        <button
+                            class="upload-main-btn"
+                            id="mainUpload">
+
+                            Choose PDF
+
+                        </button>
+
+                        <small>
+
+                            Maximum file size: 100 MB
+
+                        </small>
+
+                    </div>
+
+                    <!-- PDF Canvas Area -->
+
+                    <div
+                        class="pdf-container"
+                        id="pdfContainer">
+
+                        <!-- pdf.js pages will be rendered here -->
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </main>
+
+        <!-- =====================================================
+                        STATUS BAR
+        ====================================================== -->
+
+        <footer class="status-bar">
+
+            <div
+                class="status-left">
+
+                <span
+                    id="statusText">
+
+                    Ready
+
+                </span>
+
+            </div>
+
+            <div
+                class="status-center">
+
+                <span
+                    id="pageInfo">
+
+                    Page 0 / 0
+
+                </span>
+
+            </div>
+
+            <div
+                class="status-right">
+
+                <span
+                    id="zoomInfo">
+
+                    100%
+
+                </span>
+
+            </div>
+
+        </footer>
+
+    </div>
+
+    <!-- Hidden File Input -->
+
+ <input
+    type="file"
+    id="pdfInput"
+    accept="application/pdf">
+
+    <!-- =====================================================
+                        LIBRARIES
+    ====================================================== -->
+
+    <!-- pdf.js -->
+
+    <!-- Add later -->
+
+    <!-- pdf-lib -->
+
+    <!-- Add later -->
+
+    <!-- fabric.js -->
+
+    <!-- Add later -->
+
+    <!-- =====================================================
+                        SCRIPTS
+    ====================================================== -->
+
+   
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <script type="module" src="./script.js"></script>
+
+   
+
+</body>
+
+</html>

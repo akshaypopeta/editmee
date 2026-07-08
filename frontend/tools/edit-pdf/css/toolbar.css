@@ -1,0 +1,511 @@
+/* ==========================================================
+   EDITMEE
+   FILE : toolbar.css
+   PURPOSE :
+   Header, Logo, Toolbar & Tool Buttons
+==========================================================*/
+
+
+/* ==========================================================
+   LOGO
+==========================================================*/
+
+.logo{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+    user-select:none;
+
+    white-space:nowrap;
+
+}
+
+
+.logo-icon{
+
+    width:40px;
+
+    height:40px;
+
+    border-radius:12px;
+
+    background:linear-gradient(
+        135deg,
+        var(--primary),
+        #3b82f6
+    );
+
+    color:var(--white);
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    font-size:13px;
+
+    font-weight:800;
+
+    letter-spacing:.5px;
+
+    box-shadow:var(--shadow-sm);
+
+}
+
+
+.logo-text{
+
+    font-size:20px;
+
+    font-weight:700;
+
+    color:var(--text);
+
+    letter-spacing:-0.3px;
+
+}
+
+
+/* ==========================================================
+   TOOLBAR
+==========================================================*/
+
+.toolbar{
+
+    flex:1;
+
+    display:flex;
+
+    justify-content:flex-end;
+
+    align-items:center;
+
+    gap:6px;
+
+    overflow-x:auto;
+
+    overflow-y:hidden;
+
+    scrollbar-width:none;
+
+    padding-left:40px;
+
+}
+
+
+.toolbar::-webkit-scrollbar{
+
+    display:none;
+
+}
+
+
+/* ==========================================================
+   DIVIDER
+==========================================================*/
+
+.divider{
+
+    width:1px;
+
+    height:34px;
+
+    background:var(--border);
+
+    flex-shrink:0;
+
+}
+
+
+/* ==========================================================
+   TOOL BUTTON
+==========================================================*/
+
+.tool-btn{
+
+    height:40px;
+
+    min-width:42px;
+
+    padding:0 14px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    gap:8px;
+
+    border-radius:10px;
+
+    border:1px solid transparent;
+
+    background:transparent;
+
+    color:var(--text);
+
+    font-size:13px;
+
+    font-weight:600;
+
+    white-space:nowrap;
+
+    transition:var(--transition);
+
+    flex-shrink:0;
+
+}
+
+
+/* ==========================================================
+   BUTTON HOVER
+==========================================================*/
+
+.tool-btn:hover{
+
+    background:var(--surface-2);
+
+    border-color:var(--border);
+
+     /* transform:translateY(-1px);  */
+
+}
+
+
+/* ==========================================================
+   BUTTON ACTIVE
+==========================================================*/
+
+.tool-btn:active{
+
+    transform:scale(.97);
+
+}
+
+
+/* ==========================================================
+   PRIMARY BUTTON
+==========================================================*/
+
+.tool-btn.primary{
+
+    /* background:var(--primary); */
+    background:#ef4444;
+    color:var(--white);
+
+    border-color:#ffffff;
+
+    box-shadow:var(--shadow-sm);
+
+    
+}
+
+
+.tool-btn.primary:hover{
+
+    /* background:var(--primary-hover); */
+
+    background:#dc2626;
+
+    border-color:#bfdbfe;
+
+    transform:translateY(-0.30px); 
+}
+
+
+/* ==========================================================
+   ACTIVE TOOL
+==========================================================*/
+
+.tool-btn.active{
+
+    background:#dbeafe;
+
+    color:var(--primary);
+
+    border-color:#bfdbfe;
+
+}
+
+
+/* ==========================================================
+   DISABLED
+==========================================================*/
+
+.tool-btn:disabled{
+
+    opacity:.45;
+
+    pointer-events:none;
+
+}
+
+
+/* ==========================================================
+   ZOOM VALUE
+==========================================================*/
+
+.zoom-level{
+
+    min-width:60px;
+
+    text-align:center;
+
+    font-size:14px;
+
+    font-weight:700;
+
+    color:var(--text-light);
+
+    user-select:none;
+
+}
+
+
+/* ==========================================================
+   HEADER SHADOW
+==========================================================*/
+
+.header{
+
+    transition:box-shadow .25s ease;
+
+}
+
+
+.header.scrolled{
+
+    box-shadow:
+
+    0 4px 20px rgba(15,23,42,.08);
+
+}
+
+
+/* ==========================================================
+   TOOLTIP SUPPORT
+==========================================================*/
+
+.tool-btn[data-tooltip]{
+
+    position:relative;
+
+}
+
+
+.tool-btn[data-tooltip]::before{
+
+    content:attr(data-tooltip);
+
+    position:absolute;
+
+    bottom:-42px;
+
+    left:50%;
+
+    transform:translateX(-50%);
+
+    background:#111827;
+
+    color:#ffffff;
+
+    font-size:12px;
+
+    padding:7px 10px;
+
+    border-radius:8px;
+
+    white-space:nowrap;
+
+    opacity:0;
+
+    visibility:hidden;
+
+    transition:.2s;
+
+    pointer-events:none;
+
+    z-index:1000;
+
+}
+
+
+.tool-btn[data-tooltip]:hover::before{
+
+    opacity:1;
+
+    visibility:visible;
+
+}
+
+
+/* ==========================================================
+   KEYBOARD SHORTCUT BADGE
+==========================================================*/
+
+.tool-btn kbd{
+
+    margin-left:6px;
+
+    padding:2px 5px;
+
+    border-radius:5px;
+
+    background:#e2e8f0;
+
+    font-size:10px;
+
+    font-weight:700;
+
+}
+
+
+/* ==========================================================
+   BUTTON ICON
+==========================================================*/
+
+.tool-btn svg{
+
+    width:18px;
+
+    height:18px;
+
+    fill:currentColor;
+
+}
+
+
+/* ==========================================================
+   BUTTON LOADING
+==========================================================*/
+
+.tool-btn.loading{
+
+    position:relative;
+
+    color:transparent;
+
+}
+
+
+.tool-btn.loading::after{
+
+    content:"";
+
+    position:absolute;
+
+    width:16px;
+
+    height:16px;
+
+    border:2px solid rgba(255,255,255,.3);
+
+    border-top-color:#ffffff;
+
+    border-radius:50%;
+
+    animation:toolbarSpin .8s linear infinite;
+
+}
+
+
+@keyframes toolbarSpin{
+
+    to{
+
+        transform:rotate(360deg);
+
+    }
+
+}
+
+
+/* ==========================================================
+   UPLOAD BUTTON
+==========================================================*/
+
+#uploadButton{
+
+    height:40px;
+
+min-width:110px;
+
+}
+
+
+/* ==========================================================
+   SAVE BUTTON
+==========================================================*/
+
+#saveButton{
+
+    min-width:85px;
+
+}
+
+
+/* ==========================================================
+   UNDO REDO
+==========================================================*/
+
+#undoButton,
+#redoButton{
+
+    min-width:82px;
+
+}
+
+
+/* ==========================================================
+   ZOOM BUTTONS
+==========================================================*/
+
+#zoomOut,
+#zoomIn{
+
+    width:42px;
+
+    padding:0;
+
+    font-size:20px;
+
+    font-weight:700;
+
+}
+
+
+/* ==========================================================
+   TOOL GROUP BUTTONS
+==========================================================*/
+
+#textTool,
+#drawTool,
+#highlightTool,
+#shapeTool,
+#imageTool,
+#signatureTool{
+
+    min-width:90px;
+
+}
+
+
+/* ==========================================================
+   REDUCE MOTION
+==========================================================*/
+
+@media (prefers-reduced-motion:reduce){
+
+    .tool-btn{
+
+        transition:none;
+
+    }
+
+}

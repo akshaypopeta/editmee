@@ -1,0 +1,75 @@
+/* ==========================================================
+   SEARCH PANEL
+==========================================================*/
+
+.search-panel{
+
+    position:fixed;
+
+    top:70px;
+
+    right:30px;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:8px;
+
+    padding:10px 14px;
+
+    background:#fff;
+
+    border-radius:8px;
+
+    box-shadow:0 4px 15px rgba(0,0,0,.15);
+
+    z-index:5000;
+
+}
+
+.search-panel.hidden{
+
+    display:none;
+
+}
+
+.search-input{
+
+    width:240px;
+
+    height:34px;
+
+    padding:0 10px;
+
+}
+
+.search-panel button{
+
+    width:34px;
+
+    height:34px;
+
+    cursor:pointer;
+
+}
+
+.search-count{
+
+    min-width:55px;
+
+    text-align:center;
+
+    font-size:14px;
+
+}
+
+.highlight-layer {
+
+    position: absolute;
+
+    inset: 0;
+
+    pointer-events: none;
+
+}

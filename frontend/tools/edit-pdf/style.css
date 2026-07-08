@@ -1,0 +1,514 @@
+/* ==========================================================
+   EDITMEE - GLOBAL STYLES
+   FILE: style.css
+   PURPOSE:
+   - Reset
+   - Variables
+   - Typography
+   - Scrollbars
+   - Utility Classes
+   - Global Animations
+========================================================== */
+
+
+/* ==========================================================
+   GOOGLE FONT
+========================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+
+/* ==========================================================
+   RESET
+========================================================== */
+
+*,
+*::before,
+*::after{
+
+    margin:0;
+    padding:0;
+
+    box-sizing:border-box;
+
+}
+
+
+/* ==========================================================
+   ROOT VARIABLES
+========================================================== */
+
+:root{
+
+    /* ==========
+       COLORS
+    ========== */
+
+    --primary:#2563eb;
+    --primary-hover:#1d4ed8;
+
+    --success:#22c55e;
+    --warning:#f59e0b;
+    --danger:#ef4444;
+
+    --white:#ffffff;
+
+    --body:#f3f6fb;
+
+    --surface:#ffffff;
+
+    --surface-2:#f8fafc;
+
+    --viewer:#eef3f9;
+
+    --border:#dbe3ef;
+
+    --border-light:#edf2f7;
+
+    --text:#1e293b;
+
+    --text-light:#64748b;
+
+    --placeholder:#94a3b8;
+
+
+
+    /* ==========
+       SHADOWS
+    ========== */
+
+    --shadow-xs:
+
+    0 1px 2px rgba(0,0,0,.05);
+
+    --shadow-sm:
+
+    0 2px 6px rgba(15,23,42,.08);
+
+    --shadow-md:
+
+    0 10px 25px rgba(15,23,42,.08);
+
+    --shadow-lg:
+
+    0 20px 45px rgba(15,23,42,.12);
+
+    --shadow-xl:
+
+    0 30px 70px rgba(15,23,42,.18);
+
+
+
+    /* ==========
+       RADIUS
+    ========== */
+
+    --radius-xs:6px;
+
+    --radius-sm:10px;
+
+    --radius-md:14px;
+
+    --radius-lg:18px;
+
+    --radius-xl:24px;
+
+
+
+    /* ==========
+       TRANSITIONS
+    ========== */
+
+    --transition:
+
+    all .25s ease;
+
+
+
+    /* ==========
+       HEADER
+    ========== */
+
+   --header-height:68px;
+
+
+
+    /* ==========
+       SIDEBAR
+    ========== */
+
+    --sidebar-width:250px;
+
+
+
+    /* ==========
+       STATUS BAR
+    ========== */
+
+    --status-height:34px;
+
+
+
+    /* ==========
+       PDF PAGE
+    ========== */
+
+    --pdf-width:900px;
+
+
+    --toolbar-height:44px;
+
+}
+
+
+/* ==========================================================
+   HTML
+========================================================== */
+
+html{
+
+    scroll-behavior:smooth;
+
+    font-size:16px;
+
+}
+
+
+/* ==========================================================
+   BODY
+========================================================== */
+
+body{
+
+    width:100%;
+
+    min-height:100vh;
+
+    background:var(--body);
+
+    color:var(--text);
+
+    font-family:
+
+    "Inter",
+
+    sans-serif;
+
+    text-rendering:optimizeLegibility;
+
+    -webkit-font-smoothing:antialiased;
+
+    -moz-osx-font-smoothing:grayscale;
+
+}
+
+/* LOGO */
+
+.logo{
+    display:flex;
+    align-items:center;
+    text-decoration:none;
+}
+
+.logo img{
+    height:80px;
+    width:auto;
+    display:block;
+}
+
+
+.heart {
+  color: #ef4444;
+  margin-right: 4px;
+}
+
+.logo-text {
+  color: #111827;
+  letter-spacing: -1px;
+}
+
+
+/* ==========================================================
+   MEDIA
+========================================================== */
+
+img{
+
+    display:block;
+
+    max-width:100%;
+
+}
+
+
+svg{
+
+    display:block;
+
+}
+
+
+button{
+
+    border:none;
+
+    outline:none;
+
+    background:none;
+
+    cursor:pointer;
+
+    font-family:inherit;
+
+}
+
+
+input{
+
+    outline:none;
+
+    font-family:inherit;
+
+}
+
+
+textarea{
+
+    resize:none;
+
+    outline:none;
+
+    font-family:inherit;
+
+}
+
+
+a{
+
+    text-decoration:none;
+
+    color:inherit;
+
+}
+
+
+ul{
+
+    list-style:none;
+
+}
+
+
+/* ==========================================================
+   SELECTION
+========================================================== */
+
+::selection{
+
+    background:#bfdbfe;
+
+    color:#111827;
+
+}
+
+
+/* ==========================================================
+   SCROLLBAR
+========================================================== */
+
+::-webkit-scrollbar{
+
+    width:10px;
+
+    height:10px;
+
+}
+
+
+::-webkit-scrollbar-track{
+
+    background:transparent;
+
+}
+
+
+::-webkit-scrollbar-thumb{
+
+    background:#c9d4e3;
+
+    border-radius:50px;
+
+}
+
+
+::-webkit-scrollbar-thumb:hover{
+
+    background:#aebed3;
+
+}
+
+
+/* ==========================================================
+   GLOBAL UTILITIES
+========================================================== */
+
+.hidden{
+
+    display:none !important;
+
+}
+
+
+.flex{
+
+    display:flex;
+
+}
+
+
+.grid{
+
+    display:grid;
+
+}
+
+
+.center{
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+}
+
+
+.w-100{
+
+    width:100%;
+
+}
+
+
+.h-100{
+
+    height:100%;
+
+}
+
+
+/* ==========================================================
+   CARD
+========================================================== */
+
+.card{
+
+    background:var(--surface);
+
+    border:1px solid var(--border-light);
+
+    border-radius:var(--radius-lg);
+
+    box-shadow:var(--shadow-sm);
+
+}
+
+
+/* ==========================================================
+   ANIMATIONS
+========================================================== */
+
+.fade{
+
+    animation:fade .3s ease;
+
+}
+
+
+@keyframes fade{
+
+    from{
+
+        opacity:0;
+
+    }
+
+    to{
+
+        opacity:1;
+
+    }
+
+}
+
+
+.scale{
+
+    animation:scale .25s ease;
+
+}
+
+
+@keyframes scale{
+
+    from{
+
+        opacity:0;
+
+        transform:scale(.95);
+
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:scale(1);
+
+    }
+
+}
+
+
+/* ==========================================================
+   LOADING
+========================================================== */
+
+.loading{
+
+    pointer-events:none;
+
+    opacity:.6;
+
+}
+
+
+/* ==========================================================
+   FOCUS
+========================================================== */
+
+button:focus-visible,
+
+input:focus-visible{
+
+    outline:3px solid rgba(37,99,235,.25);
+
+    outline-offset:2px;
+
+}
+
+
+/* ==========================================================
+   TRANSITIONS
+========================================================== */
+
+button,
+
+input,
+
+a{
+
+    transition:var(--transition);
+
+}

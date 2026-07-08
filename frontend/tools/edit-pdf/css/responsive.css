@@ -1,0 +1,462 @@
+/* ==========================================================
+   EDITMEE
+   FILE : responsive.css
+   PURPOSE :
+   Responsive Layout
+==========================================================*/
+
+
+/* ==========================================================
+   LARGE DESKTOP
+==========================================================*/
+
+@media screen and (max-width:1400px){
+
+    :root{
+
+        --sidebar-width:250px;
+        --pdf-width:900px;
+
+    }
+
+}
+
+
+/* ==========================================================
+   LAPTOP
+==========================================================*/
+
+@media screen and (max-width:1200px){
+
+    :root{
+
+        --sidebar-width:240px;
+        --pdf-width:760px;
+
+    }
+
+    .header{
+
+        padding:0 18px;
+
+    }
+
+    .toolbar{
+
+        gap:8px;
+
+        padding-left:24px;
+
+    }
+
+    .tool-btn{
+
+        padding:0 14px;
+
+        font-size:13px;
+
+    }
+
+    .tool-btn.primary{
+
+        min-width:120px;
+
+    }
+
+    .logo-text{
+
+        font-size:20px;
+
+    }
+
+}
+
+
+/* ==========================================================
+   TABLET LANDSCAPE
+==========================================================*/
+
+@media screen and (max-width:992px){
+
+    :root{
+
+        --sidebar-width:220px;
+        --pdf-width:680px;
+
+    }
+
+    .header{
+
+        padding:0 14px;
+
+    }
+
+    .toolbar{
+
+        gap:6px;
+
+        padding-left:18px;
+
+    }
+
+    .divider{
+
+        display:none;
+
+    }
+
+    .tool-btn{
+
+        height:40px;
+
+        padding:0 12px;
+
+        font-size:13px;
+
+    }
+
+    .viewer-scroll{
+
+        padding:32px;
+
+    }
+
+    .upload-card{
+
+        min-height:420px;
+
+        padding:40px;
+
+    }
+
+}
+
+
+/* ==========================================================
+   TABLET
+==========================================================*/
+
+@media screen and (max-width:768px){
+
+    :root{
+
+        --header-height:64px;
+        --status-height:32px;
+
+    }
+
+    .sidebar{
+
+        display:none;
+
+    }
+
+    .header{
+
+        justify-content:space-between;
+
+    }
+
+    .toolbar{
+
+        padding-left:10px;
+
+        overflow-x:auto;
+
+        scrollbar-width:none;
+
+    }
+
+    .toolbar::-webkit-scrollbar{
+
+        display:none;
+
+    }
+
+    .tool-btn{
+
+        min-width:40px;
+
+        padding:0 12px;
+
+        font-size:12px;
+
+    }
+
+    .logo-text{
+
+        display:none;
+
+    }
+
+    .viewer-scroll{
+
+        padding:20px;
+
+    }
+
+    .upload-card{
+
+        min-height:380px;
+
+        padding:34px;
+
+    }
+
+    .upload-card h1{
+
+        font-size:30px;
+
+    }
+
+    .upload-icon{
+
+        width:90px;
+        height:90px;
+
+        font-size:42px;
+
+    }
+
+}
+
+
+/* ==========================================================
+   MOBILE LARGE
+==========================================================*/
+
+@media screen and (max-width:576px){
+
+    .header{
+
+        padding:0 12px;
+
+    }
+
+    .toolbar{
+
+        gap:5px;
+
+    }
+
+    .tool-btn{
+
+        height:38px;
+
+        padding:0 10px;
+
+        font-size:12px;
+
+        border-radius:10px;
+
+    }
+
+    .zoom-level{
+
+        min-width:48px;
+
+        font-size:12px;
+
+    }
+
+    .upload-card{
+
+        min-height:340px;
+
+        padding:28px 22px;
+
+        border-radius:18px;
+
+    }
+
+    .upload-card h1{
+
+        font-size:26px;
+
+    }
+
+    .upload-card p{
+
+        font-size:15px;
+
+    }
+
+    .upload-main-btn{
+
+        width:100%;
+
+        max-width:260px;
+
+    }
+
+    .status-bar{
+
+        font-size:12px;
+
+        padding:0 10px;
+
+    }
+
+}
+
+
+/* ==========================================================
+   MOBILE
+==========================================================*/
+
+@media screen and (max-width:400px){
+
+    .header{
+
+        height:60px;
+
+    }
+
+    .logo-icon{
+
+        width:36px;
+        height:36px;
+
+        font-size:11px;
+
+    }
+
+    .tool-btn{
+
+        height:36px;
+
+        padding:0 8px;
+
+        font-size:11px;
+
+    }
+
+    .upload-card{
+
+        min-height:320px;
+
+        padding:24px 18px;
+
+    }
+
+    .upload-icon{
+
+        width:72px;
+        height:72px;
+
+        font-size:36px;
+
+        margin-bottom:20px;
+
+    }
+
+    .upload-card h1{
+
+        font-size:24px;
+
+    }
+
+    .upload-card p{
+
+        font-size:14px;
+
+    }
+
+    .upload-card span{
+
+        margin:14px 0;
+
+    }
+
+    .upload-main-btn{
+
+        height:46px;
+
+        font-size:14px;
+
+    }
+
+    .status-center{
+
+        display:none;
+
+    }
+
+}
+
+
+/* ==========================================================
+   SMALL PHONES
+==========================================================*/
+
+@media screen and (max-width:360px){
+
+    .toolbar{
+
+        gap:4px;
+
+    }
+
+    .tool-btn{
+
+        padding:0 7px;
+
+    }
+
+    .upload-card{
+
+        padding:20px 16px;
+
+    }
+
+    .upload-card h1{
+
+        font-size:22px;
+
+    }
+
+    .upload-icon{
+
+        width:64px;
+        height:64px;
+
+        font-size:30px;
+
+    }
+
+}
+
+
+/* ==========================================================
+   LANDSCAPE MOBILE
+==========================================================*/
+
+@media screen and (max-height:600px) and (orientation:landscape){
+
+    .header{
+
+        height:56px;
+
+    }
+
+    .status-bar{
+
+        display:none;
+
+    }
+
+    .viewer-scroll{
+
+        padding:20px;
+
+    }
+
+    .upload-card{
+
+        min-height:280px;
+
+        padding:24px;
+
+    }
+
+}

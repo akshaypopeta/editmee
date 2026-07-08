@@ -1,0 +1,472 @@
+/* ==========================================================
+   EDITMEE
+   FILE : sidebar.css
+   PURPOSE :
+   Left Sidebar
+   - Sidebar Header
+   - Upload Button
+   - Thumbnail List
+   - Empty State
+   - Page Thumbnails
+==========================================================*/
+
+
+/* ==========================================================
+   SIDEBAR
+==========================================================*/
+
+.sidebar{
+
+    position:relative;
+
+    display:flex;
+
+    flex-direction:column;
+
+    background:var(--surface);
+
+    user-select:none;
+
+}
+
+
+/* ==========================================================
+   SIDEBAR HEADER
+==========================================================*/
+
+.sidebar-header{
+
+    height:58px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    padding:0 20px;
+
+    border-bottom:1px solid var(--border);
+
+    flex-shrink:0;
+
+}
+
+
+.sidebar-header h2{
+
+    font-size:18px;
+
+    font-weight:700;
+
+    color:var(--text);
+
+    letter-spacing:-0.3px;
+
+}
+
+
+/* ==========================================================
+   SIDEBAR UPLOAD BUTTON
+==========================================================*/
+
+.sidebar-upload{
+
+    margin:16px;
+
+    height:44px;
+
+    border-radius:12px;
+
+    border:1px dashed #ef4444;
+
+    background: #fff7f7;
+
+    color:#ef4444;
+
+    font-size:14px;
+
+    font-weight:700;
+
+    transition:var(--transition);
+
+}
+
+
+.sidebar-upload:hover{
+
+    background:#dc2626;
+
+    color:var(--white);
+
+    border-style:solid;
+
+    transform:translateY(-1px);
+
+    box-shadow:var(--shadow-sm);
+
+}
+
+
+.sidebar-upload:active{
+
+    transform:scale(.98);
+
+}
+
+
+/* ==========================================================
+   THUMBNAIL LIST
+==========================================================*/
+
+.thumbnail-list{
+
+    flex:1;
+
+    overflow-y:auto;
+
+    overflow-x:hidden;
+
+    padding:16px;
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:14px;
+
+}
+
+.thumbnail {
+
+    border: 2px solid transparent;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+
+}
+
+.thumbnail:hover {
+
+    border-color: #cbd5e1;
+
+}
+
+.thumbnail.active {
+
+    border-color: #dc2626;
+
+    box-shadow: 0 0 0 3px #fff7f7;
+
+}
+/* ==========================================================
+   EMPTY STATE
+==========================================================*/
+
+.sidebar-empty{
+
+    margin-top:40px;
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+
+    justify-content:center;
+
+    text-align:center;
+
+    color:var(--text-light);
+
+    padding:20px;
+
+}
+
+
+.sidebar-empty-icon{
+
+    width:72px;
+
+    height:72px;
+
+    border-radius:18px;
+
+    background:var(--surface-2);
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    font-size:34px;
+
+    margin-bottom:18px;
+
+}
+
+
+.sidebar-empty p{
+
+    font-size:14px;
+
+    line-height:1.6;
+
+}
+
+
+/* ==========================================================
+   PAGE THUMBNAIL
+==========================================================*/
+
+.page-thumbnail{
+
+    background:var(--surface);
+
+    border:2px solid transparent;
+
+    border-radius:14px;
+
+    overflow:hidden;
+
+    cursor:pointer;
+
+    transition:var(--transition);
+
+    box-shadow:var(--shadow-xs);
+
+}
+
+
+.page-thumbnail:hover{
+
+    border-color:#bfdbfe;
+
+    box-shadow:var(--shadow-md);
+
+    transform:translateY(-2px);
+
+}
+
+
+/* ==========================================================
+   ACTIVE PAGE
+==========================================================*/
+
+.page-thumbnail.active{
+
+    border-color:var(--primary);
+
+}
+
+
+/* ==========================================================
+   THUMBNAIL PREVIEW
+==========================================================*/
+
+.thumbnail-preview{
+
+    width:100%;
+
+    aspect-ratio:210 / 297;
+
+    background:#ffffff;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    overflow:hidden;
+
+}
+
+
+.thumbnail-preview canvas{
+
+    width:100%;
+
+    height:auto;
+
+    display:block;
+
+}
+
+
+/* ==========================================================
+   THUMBNAIL FOOTER
+==========================================================*/
+
+.thumbnail-footer{
+
+    height:42px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    background:#fafbfd;
+
+    border-top:1px solid var(--border-light);
+
+    font-size:13px;
+
+    font-weight:600;
+
+    color:var(--text-light);
+
+}
+
+
+/* ==========================================================
+   PAGE NUMBER
+==========================================================*/
+
+.page-number{
+
+    font-weight:700;
+
+    color:var(--text);
+
+}
+
+
+/* ==========================================================
+   THUMBNAIL LOADING
+==========================================================*/
+
+.thumbnail-loading{
+
+    width:100%;
+
+    aspect-ratio:210 / 297;
+
+    border-radius:10px;
+
+    background:
+
+    linear-gradient(
+
+        90deg,
+
+        #f3f4f6 0%,
+
+        #ffffff 50%,
+
+        #f3f4f6 100%
+
+    );
+
+    background-size:250% 100%;
+
+    animation:thumbnailLoading 1.2s infinite linear;
+
+}
+
+
+@keyframes thumbnailLoading{
+
+    from{
+
+        background-position:200% 0;
+
+    }
+
+    to{
+
+        background-position:-200% 0;
+
+    }
+
+}
+
+
+/* ==========================================================
+   DROP TARGET
+==========================================================*/
+
+.sidebar.drag-over{
+
+    background:#eff6ff;
+
+}
+
+
+.sidebar.drag-over::after{
+
+    content:"Drop PDF Here";
+
+    position:absolute;
+
+    inset:10px;
+
+    border:2px dashed var(--primary);
+
+    border-radius:16px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    font-size:18px;
+
+    font-weight:700;
+
+    color:var(--primary);
+
+    background:rgba(255,255,255,.7);
+
+}
+
+
+/* ==========================================================
+   CUSTOM SCROLLBAR
+==========================================================*/
+
+.thumbnail-list::-webkit-scrollbar{
+
+    width:8px;
+
+}
+
+
+.thumbnail-list::-webkit-scrollbar-thumb{
+
+    background:#d7dee8;
+
+    border-radius:50px;
+
+}
+
+
+.thumbnail-list::-webkit-scrollbar-thumb:hover{
+
+    background:#b8c3d2;
+
+}
+
+
+/* ==========================================================
+   REDUCE MOTION
+==========================================================*/
+
+@media (prefers-reduced-motion:reduce){
+
+    .page-thumbnail,
+
+    .sidebar-upload{
+
+        transition:none;
+
+    }
+
+}

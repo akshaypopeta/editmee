@@ -1,0 +1,549 @@
+/* ==========================================================
+   EDITMEE
+   FILE : viewer.css
+   PURPOSE :
+   - Viewer Area
+   - Upload Card
+   - PDF Container
+   - PDF Pages
+   - Drag & Drop
+   - Loading
+==========================================================*/
+
+
+/* ==========================================================
+   VIEWER
+==========================================================*/
+
+.viewer{
+
+    position:relative;
+
+    flex:1;
+
+    display:flex;
+
+    flex-direction:column;
+
+    overflow:hidden;
+
+    background:
+
+    linear-gradient(
+    
+    180deg,
+    
+    #eef3fa 0%,
+    
+    #e8eef6 100%
+    
+    );
+
+}
+
+
+/* ==========================================================
+   SCROLL AREA
+==========================================================*/
+
+.viewer-scroll{
+
+    flex:1;
+
+    overflow:auto;
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+
+    padding:40px;
+
+}
+
+#pagesWrapper{
+
+    width:100%;
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+
+    gap:40px;
+
+}
+/* ==========================================================
+   UPLOAD CARD
+==========================================================*/
+
+.upload-card{
+
+    width:100%;
+
+    max-width:840px;
+
+    min-height:500px;
+
+    background:var(--surface);
+
+    border:2px dashed #d1d5db;
+
+    border-radius:22px;
+
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:center;
+
+    align-items:center;
+
+    text-align:center;
+
+    padding:70px;
+
+    transition:var(--transition);
+
+    box-shadow:var(--shadow-sm);
+
+}
+
+
+/* ==========================================================
+   UPLOAD CARD HOVER
+==========================================================*/
+
+.upload-card:hover{
+
+    border-color:var(--primary);
+
+    background:#fff7f7;
+
+    border: 2px dashed #ef4444;
+
+    box-shadow:var(--shadow-lg);
+
+}
+
+
+/* ==========================================================
+   DRAG ACTIVE
+==========================================================*/
+
+.upload-card.drag-over{
+
+    border-color:var(--primary);
+
+    background:#eff6ff;
+
+    transform:scale(1.01);
+
+}
+
+
+/* ==========================================================
+   UPLOAD ICON
+==========================================================*/
+
+.upload-icon{
+
+    width:130px;
+
+    height:130px;
+
+    border-radius:50%;
+
+    background:#eff6ff;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    font-size:64px;
+
+    margin-bottom:30px;
+
+}
+
+
+/* ==========================================================
+   TITLE
+==========================================================*/
+
+.upload-card h1{
+
+    font-size:48px;
+
+    font-weight:800;
+
+    color:var(--text);
+
+    margin-bottom:18px;
+
+}
+
+
+/* ==========================================================
+   DESCRIPTION
+==========================================================*/
+
+.upload-card p{
+
+    font-size:18px;
+
+    color:var(--text-light);
+
+    margin-bottom:10px;
+
+}
+
+
+/* ==========================================================
+   OR TEXT
+==========================================================*/
+
+.upload-card span{
+
+    margin:18px 0;
+
+    color:var(--placeholder);
+
+    font-size:15px;
+
+    font-weight:600;
+
+}
+
+
+/* ==========================================================
+   MAIN BUTTON
+==========================================================*/
+
+.upload-main-btn{
+
+    height:64px;
+
+    padding:0 42px;
+
+    border-radius:14px;
+
+    /* background:var(--primary); */
+    background:#ef4444;
+
+    color:var(--white);
+
+    font-size:20px;
+
+    font-weight:800;
+
+    box-shadow:0 25px 60px rgba(15,23,42,.08);
+
+    transition:var(--transition);
+
+}
+
+
+.upload-main-btn:hover{
+
+    /* background:var(--primary-hover); */
+background:#dc2626;
+    transform:translateY(-2px);
+
+    box-shadow:var(--shadow-md);
+
+}
+
+
+.upload-main-btn:active{
+
+    transform:scale(.98);
+
+}
+
+
+/* ==========================================================
+   SMALL TEXT
+==========================================================*/
+
+.upload-card small{
+
+    margin-top:22px;
+
+    font-size:13px;
+
+    color:var(--placeholder);
+
+}
+
+
+/* ==========================================================
+   PDF CONTAINER
+==========================================================*/
+
+.pdf-container{
+
+    width:100%;
+
+    max-width:var(--pdf-width);
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:40px;
+
+    align-items:center;
+
+}
+
+
+/* ==========================================================
+   PDF PAGE
+==========================================================*/
+
+.pdf-page{
+
+    background:#fff;
+
+    border-radius:10px;
+
+    position:relative;
+
+    overflow:visible;
+
+    box-shadow:var(--shadow-lg);
+
+}
+
+
+/* ==========================================================
+   PDF CANVAS
+==========================================================*/
+
+.pdf-page canvas{
+
+    display:block;
+
+    height:auto;
+
+}
+
+
+/* ==========================================================
+   FABRIC CANVAS
+==========================================================*/
+
+.fabric-layer{
+
+    position:absolute;
+
+    inset:0;
+
+}
+
+
+/* ==========================================================
+   PAGE LABEL
+==========================================================*/
+
+.page-label{
+
+    width:100%;
+
+    text-align:center;
+
+    font-size:13px;
+
+    font-weight:600;
+
+    color:var(--text-light);
+
+    margin-top:8px;
+
+}
+
+
+/* ==========================================================
+   LOADING
+==========================================================*/
+
+.viewer-loading{
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+
+    justify-content:center;
+
+    gap:20px;
+
+    padding:100px 0;
+
+}
+
+
+/* ==========================================================
+   SPINNER
+==========================================================*/
+
+.spinner{
+
+    width:56px;
+
+    height:56px;
+
+    border:5px solid #dbeafe;
+
+    border-top-color:var(--primary);
+
+    border-radius:50%;
+
+    animation:spin .8s linear infinite;
+
+}
+
+
+@keyframes spin{
+
+    to{
+
+        transform:rotate(360deg);
+
+    }
+
+}
+
+
+/* ==========================================================
+   DRAG OVERLAY
+==========================================================*/
+
+.viewer.drag-over::after{
+
+    content:"Drop PDF Here";
+
+    position:absolute;
+
+    inset:25px;
+
+    border:3px dashed var(--primary);
+
+    border-radius:20px;
+
+    background:rgba(37,99,235,.08);
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    font-size:34px;
+
+    font-weight:700;
+
+    color:var(--primary);
+
+    z-index:1000;
+
+}
+
+
+/* ==========================================================
+   PAGE FADE
+==========================================================*/
+
+.pdf-page{
+
+    animation:pageFade .25s ease;
+
+}
+
+
+@keyframes pageFade{
+
+    from{
+
+        opacity:0;
+
+        transform:translateY(12px);
+
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:translateY(0);
+
+    }
+
+}
+
+
+/* ==========================================================
+   HIDE UPLOAD CARD
+==========================================================*/
+
+.viewer.has-pdf .upload-card{
+
+    display:none;
+
+}
+
+
+.viewer.has-pdf .pdf-container{
+
+    display:flex;
+
+}
+
+
+/* ==========================================================
+   PDF SHADOW ON HOVER
+==========================================================*/
+
+.pdf-page:hover{
+
+    box-shadow:var(--shadow-xl);
+
+}
+
+
+/* ==========================================================
+   PDF SELECTION
+==========================================================*/
+
+.pdf-page.active{
+
+    outline:3px solid var(--primary);
+
+}
+
+
+/* ==========================================================
+   REDUCE MOTION
+==========================================================*/
+
+@media (prefers-reduced-motion:reduce){
+
+    .upload-card,
+
+    .upload-main-btn,
+
+    .pdf-page{
+
+        transition:none;
+
+        animation:none;
+
+    }
+
+}
