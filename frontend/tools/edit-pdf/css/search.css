@@ -73,3 +73,15 @@
     pointer-events: none;
 
 }
+
+.search-highlight {
+
+    position: absolute;
+
+    background: rgba(255, 230, 0, 0.45);
+
+    border-radius: 3px;
+
+    pointer-events: none;
+
+}

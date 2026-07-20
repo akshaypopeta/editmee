@@ -54,9 +54,15 @@ initializeEvents() {
             return;
         }
 
-        this.results = await this.renderer.search(query);
+    this.results = await this.renderer.search(query);
 
-       this.currentIndex = this.results.length ? 0 : -1;
+this.currentIndex = this.results.length ? 0 : -1;
+
+// NEW
+await this.renderer.highlightManager.showSearchResults(
+    this.results,
+    query
+);
 
 this.updateSearchCount();
 
@@ -135,7 +141,17 @@ async goToCurrentResult() {
 
     const result = this.results[this.currentIndex];
 
+    // Scroll to page
     await this.renderer.renderPage(result.pageNumber);
+
+    // Remove old highlights
+    this.renderer.highlightManager.clearPageHighlights();
+
+    // Highlight current page
+    await this.renderer.highlightManager.showHighlights(
+        result.pageNumber,
+        this.searchUI.input.value.trim()
+    );
 
 }
 

@@ -527,6 +527,75 @@ background:#dc2626;
 
 }
 
+.selection-canvas{
+
+    position:absolute;
+
+    left:0;
+
+    top:0;
+
+    pointer-events:none;
+
+    z-index:5;
+
+}
+
+.editing-block {
+
+    position: absolute;
+
+    outline: none;
+
+    white-space: pre-wrap;
+
+    overflow: hidden;
+
+    background: transparent;
+
+    color: black;
+
+    cursor: text;
+
+    z-index: 20;
+
+}
+
+/* ==========================================================
+   EDITING LAYER
+==========================================================*/
+
+.editing-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none; /* blocks override this */
+    z-index: 30;
+}
+
+/* Editable text blocks */
+.editing-block {
+    position: absolute;
+    outline: none;
+    white-space: pre-wrap;
+    overflow: hidden;
+    background: transparent;
+    color: black;
+    cursor: text;
+    z-index: 100;
+    pointer-events: auto;
+
+    /* Default text styling */
+    font-family: sans-serif;
+    font-size: 14px;
+    line-height: 1.3;
+}
+
+/* Active editing state */
+.editing-block:focus {
+    border: 1px solid #0078d4; /* subtle highlight */
+    background-color: rgba(0, 120, 212, 0.05);
+}
+
 
 /* ==========================================================
    REDUCE MOTION

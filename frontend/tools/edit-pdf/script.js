@@ -12,3 +12,4 @@ console.log("Script Loaded");
 // app.js creates and exports the App instance.
 // Importing it initializes the application.
 window.app = app;
+

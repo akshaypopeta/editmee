@@ -52,6 +52,14 @@ export default class TextManager {
 
     }
 
+    /**
+ * Get PDF.js page object.
+ */
+async getPage(pageNumber) {
+
+    return await this.pdfDocument.getPage(pageNumber);
+
+}
 
     
 }
