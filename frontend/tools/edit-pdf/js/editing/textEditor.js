@@ -7,14 +7,107 @@
 
 export default class TextEditor {
 
-    constructor(renderer) {
+ constructor(renderer) {
 
-        this.renderer = renderer;
+    this.renderer = renderer;
 
-        this.textarea = null;
+    this.textarea = null;
 
-    }
+    this.popup = null;
 
+    this.editBox = null;
+
+    this.currentBlock = null;
+
+    this.createPopup();
+
+}
+
+createPopup() {
+
+    this.popup = document.createElement("div");
+
+    this.popup.style.position = "fixed";
+    this.popup.style.display = "none";
+    this.popup.style.width = "350px";
+    this.popup.style.background = "#fff";
+    this.popup.style.border = "1px solid #dcdcdc";
+    this.popup.style.borderRadius = "8px";
+    this.popup.style.padding = "12px";
+    this.popup.style.boxShadow = "0 10px 30px rgba(0,0,0,.2)";
+    this.popup.style.zIndex = "99999";
+
+    const title = document.createElement("div");
+
+    title.innerText = "Edit Text";
+
+    title.style.fontWeight = "600";
+
+    title.style.marginBottom = "10px";
+
+    this.editBox = document.createElement("textarea");
+
+    this.editBox.style.width = "100%";
+
+    this.editBox.style.height = "120px";
+
+    this.editBox.style.resize = "vertical";
+
+    this.editBox.style.boxSizing = "border-box";
+
+    const footer = document.createElement("div");
+
+    footer.style.display = "flex";
+
+    footer.style.justifyContent = "flex-end";
+
+    footer.style.gap = "10px";
+
+    footer.style.marginTop = "10px";
+
+    const cancelBtn = document.createElement("button");
+
+    cancelBtn.innerText = "Cancel";
+
+    const applyBtn = document.createElement("button");
+
+    applyBtn.innerText = "Apply";
+
+    footer.appendChild(cancelBtn);
+
+    footer.appendChild(applyBtn);
+
+    this.popup.appendChild(title);
+
+    this.popup.appendChild(this.editBox);
+
+    this.popup.appendChild(footer);
+
+    document.body.appendChild(this.popup);
+
+    cancelBtn.onclick = () => {
+
+        this.stopEdit();
+
+    };
+
+    applyBtn.onclick = () => {
+
+        if (!this.currentBlock) return;
+
+        this.currentBlock.text = this.editBox.value;
+
+        this.currentBlock.edited = true;
+
+        this.currentBlock.visible = true;
+
+        this.stopEdit(this.currentBlock);
+
+        this.renderer.renderPage(this.currentBlock.pageNumber);
+
+    };
+
+}
 
    startEdit(block, bounds, pageState) {
 

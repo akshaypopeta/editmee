@@ -18,6 +18,8 @@ import BlockBuilder from "./objects/blockBuilder.js";
 import WordBuilder from "./objects/wordBuilder.js";
 import { getObjectBounds } from "./utils/objectBounds.js";
 import EditingLayer from "./editing/editingLayer.js";
+import TextEditor from "./editing/textEditor.js";
+import EditedTextLayer from "./editing/editedTextLayer.js";
 
 
 class Renderer {
@@ -41,6 +43,10 @@ this.objectManager = new ObjectManager();
 
 this.editingLayer = new EditingLayer(this.pageManager);
 
+this.editedTextLayer = new EditedTextLayer(
+    this.pageManager
+);
+
 window.objectManager = this.objectManager;
 
 this.blockBuilder = new BlockBuilder();
@@ -54,7 +60,9 @@ this.selectionManager = new SelectionManager(
     this.pageManager
 );
 
+this.textEditor = new TextEditor(this);
 
+this.pageManager.renderer = this;
 
 this.highlightManager = new HighlightManager(this);
 
@@ -153,6 +161,23 @@ for (const [pageNumber, objects] of this.objectManager.getAllPages()) {
     this.objectManager.setWordObjects(
         pageNumber,
         words
+    );
+
+}
+
+for (const pageNumber of this.pageManager.getPageNumbers()) {
+
+    const pageState =
+        this.pageManager.getPage(pageNumber);
+
+    this.editedTextLayer.render(
+
+        pageNumber,
+
+        this.objectManager.getBlockObjects(pageNumber),
+
+        pageState.viewport
+
     );
 
 }
@@ -622,7 +647,7 @@ drawSelection(pageNumber) {
 
     if (!ctx) return;
 
-    // Clear previous selection
+    // Clear overlay
     ctx.clearRect(
         0,
         0,
@@ -632,13 +657,23 @@ drawSelection(pageNumber) {
 
     const object = this.selectionManager.getSelectedObject();
 
-    if (!object) return;
+    // No selection -> only draw edited text
+    if (!object) {
 
- 
+        this.drawEditedObjects(pageNumber);
 
+        return;
 
+    }
 
-    if (object.page !== pageNumber) return;
+    // Different page
+    if (object.page !== pageNumber) {
+
+        this.drawEditedObjects(pageNumber);
+
+        return;
+
+    }
 
     const bounds = getObjectBounds(
         object,
@@ -651,36 +686,35 @@ drawSelection(pageNumber) {
     ctx.lineWidth = 2;
 
     ctx.strokeRect(
-    bounds.left,
-    bounds.top,
-    bounds.width,
-    bounds.height
-);
-
-
-// Draw caret when editing
-if (object.editing) {
-
-    const caretX = bounds.left;
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        caretX,
-        bounds.top + 3
+        bounds.left,
+        bounds.top,
+        bounds.width,
+        bounds.height
     );
 
-    ctx.lineTo(
-        caretX,
-        bounds.bottom - 3
-    );
+    if (object.editing) {
 
-    ctx.stroke();
+        const caretX = bounds.left;
 
-}
+        ctx.beginPath();
 
+        ctx.moveTo(
+            caretX,
+            bounds.top + 3
+        );
 
-ctx.restore();
+        ctx.lineTo(
+            caretX,
+            bounds.bottom - 3
+        );
+
+        ctx.stroke();
+
+    }
+
+    ctx.restore();
+
+    this.drawEditedObjects(pageNumber);
 
 }
 
@@ -699,6 +733,8 @@ async redrawPage(pageNumber) {
 
   // Draw edited text on the overlay (selection canvas)
   this.drawEditedObjects(pageNumber);
+
+  
 }
 
 
@@ -713,35 +749,129 @@ async search(query) {
 }
 
 drawEditedObjects(pageNumber) {
-  const pageState = this.pageManager.getPage(pageNumber);
-  if (!pageState) return;
 
-  const ctx = pageState.selectionContext;
-  const viewport = pageState.viewport;
-  if (!ctx || !viewport) return;
+    const pageState = this.pageManager.getPage(pageNumber);
 
-  ctx.clearRect(0, 0, pageState.selectionCanvas.width, pageState.selectionCanvas.height);
+    if (!pageState) return;
 
-  const objects = this.objectManager.getBlockObjects(pageNumber);
+    const ctx = pageState.selectionContext;
 
-  for (const object of objects) {
-    if (!object.edited) continue;
-    if (object.editing) continue;
-    if (object.visible === false) {
-      // Only draw the new text, not the old one
-      const x = object.x * viewport.scale;
-      const y = viewport.height - (object.y * viewport.scale);
+    const viewport = pageState.viewport;
 
-      ctx.font = `${object.height * viewport.scale}px sans-serif`;
-      ctx.fillStyle = "black";
-      ctx.textBaseline = "alphabetic";
-      ctx.fillText(object.text, x, y);
+    if (!ctx || !viewport) return;
+
+    ctx.save();
+
+    const objects = this.objectManager.getBlockObjects(pageNumber);
+
+    for (const object of objects) {
+
+        if (!object.edited) continue;
+
+        const bounds = getObjectBounds(object, viewport);
+
+        // Completely hide original text
+        ctx.fillStyle = "#FFFFFF";
+
+        ctx.fillRect(
+            bounds.left - 3,
+            bounds.top - 3,
+            bounds.width + 6,
+            bounds.height + 6
+        );
+
+        // Start with original block height
+        let fontSize = bounds.height;
+
+        ctx.font = `${fontSize}px Arial`;
+
+        let lines = this.wrapText(
+            ctx,
+            object.text,
+            bounds.width
+        );
+
+        let lineHeight = fontSize * 1.15;
+
+        // Reduce font until everything fits
+        while (
+            (lines.length * lineHeight) > bounds.height &&
+            fontSize > 6
+        ) {
+
+            fontSize -= 0.5;
+
+            ctx.font = `${fontSize}px Arial`;
+
+            lines = this.wrapText(
+                ctx,
+                object.text,
+                bounds.width
+            );
+
+            lineHeight = fontSize * 1.15;
+
+        }
+
+        ctx.fillStyle = "#000";
+
+        ctx.textBaseline = "alphabetic";
+
+        const startY =
+            bounds.top +
+            fontSize;
+
+        lines.forEach((line, index) => {
+
+            ctx.fillText(
+                line,
+                bounds.left,
+                startY + (index * lineHeight)
+            );
+
+        });
+
     }
-  }
+
+    ctx.restore();
+
 }
 
+wrapText(context, text, maxWidth) {
 
+    const words = text.split(" ");
 
+    const lines = [];
+
+    let currentLine = words[0] || "";
+
+    for (let i = 1; i < words.length; i++) {
+
+        const word = words[i];
+
+        const width = context.measureText(
+            currentLine + " " + word
+        ).width;
+
+        if (width <= maxWidth) {
+
+            currentLine += " " + word;
+
+        } else {
+
+            lines.push(currentLine);
+
+            currentLine = word;
+
+        }
+
+    }
+
+    lines.push(currentLine);
+
+    return lines;
+
+}
 
 
 }

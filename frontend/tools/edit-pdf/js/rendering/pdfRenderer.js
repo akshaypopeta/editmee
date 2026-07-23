@@ -7,14 +7,17 @@
 
 export default class PDFRenderer {
 
-    constructor(pageManager) {
+ constructor(pageManager) {
 
-        this.pageManager = pageManager;
+    this.pageManager = pageManager;
 
-        this.lastClickTime = 0;
-this.DOUBLE_CLICK_DELAY = 300;
+    this.lastClickTime = 0;
 
-    }
+    this.DOUBLE_CLICK_DELAY = 300;
+
+    this.renderer = null;
+
+}
 
   async renderPage(pageNumber) {
 
@@ -79,6 +82,61 @@ pageState.selectionCanvas.style.height = cssHeight + "px";
     await renderTask.promise;
 
     pageState.status = "rendered";
+
+const renderer = this.pageManager.renderer;
+
+pageState.selectionCanvas.onclick = (event) => {
+
+    const rect = pageState.selectionCanvas.getBoundingClientRect();
+
+    const scale = window.devicePixelRatio;
+
+    const x = (event.clientX - rect.left) * scale;
+
+    const y = (event.clientY - rect.top) * scale;
+
+    const object = renderer.selectionManager.findObjectAtPoint(
+        pageNumber,
+        x,
+        y,
+        viewport
+    );
+
+    if (!object) return;
+
+    renderer.selectionManager.select(object);
+
+    renderer.drawSelection(pageNumber);
+
+};
+
+pageState.selectionCanvas.ondblclick = (event) => {
+
+    const rect = pageState.selectionCanvas.getBoundingClientRect();
+
+    const scale = window.devicePixelRatio;
+
+    const x = (event.clientX - rect.left) * scale;
+
+    const y = (event.clientY - rect.top) * scale;
+
+    const object = renderer.selectionManager.findObjectAtPoint(
+        pageNumber,
+        x,
+        y,
+        viewport
+    );
+
+    if (!object) return;
+
+    renderer.selectionManager.select(object);
+
+    renderer.selectionManager.enterEditMode(
+        pageNumber,
+        viewport
+    );
+
+};
 
 }
 

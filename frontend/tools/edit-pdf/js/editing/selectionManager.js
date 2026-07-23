@@ -26,48 +26,48 @@ export default class SelectionManager {
         this.selectedObject = object;
     }
 
- enterEditMode(pageNumber, viewport) {
+enterEditMode(pageNumber, viewport) {
+
     if (!this.selectedObject) return;
 
     this.selectedObject.editing = true;
 
-    // Compute bounds in device pixels using the viewport
     const bounds = getObjectBounds(this.selectedObject, viewport);
 
-    this.editingLayer.initializePage(pageNumber);
+    this.pageManager.renderer.textEditor.startEdit(
+        this.selectedObject,
+        bounds,
+        this.pageManager.getPage(pageNumber)
+    );
 
-    // ✅ Pass viewport so the editing layer can compute CSS sizes/positions correctly
-    this.editingLayer.createEditingBlock(pageNumber, this.selectedObject, bounds, viewport);
 }
 
- exitEditMode(pageNumber) {
-  if (!this.selectedObject) return;
 
-  this.selectedObject.editing = false;
+exitEditMode(pageNumber) {
 
-  const blockElement = this.editingLayer.getEditingBlock();
-  if (blockElement) {
-    this.selectedObject.text = blockElement.textContent;
-    this.selectedObject.edited = true;
-  }
+    if (!this.selectedObject) return;
 
-  // Force redraw immediately
-  if (window.renderer && typeof window.renderer.redrawPage === "function") {
-    window.renderer.redrawPage(pageNumber);
-  }
+    this.pageManager.renderer.textEditor.stopEdit(
+        this.selectedObject
+    );
+
 }
 
 
     /**
      * Remove current selection.
      */
-    clear() {
-        if (this.selectedObject) {
-            this.selectedObject.selected = false;
-        }
-        this.selectedObject = null;
-        this.editingLayer.removeEditingBlock();
+ clear() {
+
+    if (this.selectedObject) {
+
+        this.selectedObject.selected = false;
+
     }
+
+    this.selectedObject = null;
+
+}
 
     /**
      * Get current selected object.
