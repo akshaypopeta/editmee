@@ -97,106 +97,223 @@ createPopup() {
 
         this.currentBlock.text = this.editBox.value;
 
+this.currentBlock.visible = true;
+
+this.currentBlock.edited = true;
+
         this.currentBlock.edited = true;
 
         this.currentBlock.visible = true;
 
         this.stopEdit(this.currentBlock);
 
-        this.renderer.renderPage(this.currentBlock.pageNumber);
+        this.renderer.renderPage(
+    this.currentBlock.page
+);
 
     };
 
 }
 
-   startEdit(block, bounds, pageState) {
+startEdit(block, bounds, pageState) {
 
     this.stopEdit();
 
-
     const textarea = document.createElement("textarea");
 
-
     textarea.value = block.text;
-
 
     textarea.style.position = "absolute";
 
     textarea.style.left = bounds.left + "px";
 
-    textarea.style.top = bounds.top + "px";
+    const baseline =
+    pageState.viewport.height -
+    (block.y * pageState.viewport.scale);
+
+const top =
+    baseline -
+    (block.fontSize || block.height);
+
+textarea.style.top = top + "px";
+
+    // --------------------------------------------------
+    // Fixed paragraph width (Never change)
+    // --------------------------------------------------
 
     textarea.style.width = bounds.width + "px";
+    textarea.style.minWidth = bounds.width + "px";
+    textarea.style.maxWidth = bounds.width + "px";
 
-    textarea.style.height = bounds.height + "px";
+    // --------------------------------------------------
+    // Auto growing height
+    // --------------------------------------------------
 
+    textarea.style.minHeight = bounds.height + "px";
+
+    textarea.style.height = "auto";
+
+    textarea.style.overflow = "hidden";
+
+    textarea.style.resize = "none";
+
+    // --------------------------------------------------
+    // Original formatting
+    // --------------------------------------------------
+
+    const fontSize =
+        block.fontSize || block.height;
 
     textarea.style.fontSize =
-        block.height + "px";
+        fontSize + "px";
 
+    textarea.style.fontFamily =
+        block.fontFamily || "Arial";
 
-    textarea.style.background = "white";
+    textarea.style.fontWeight =
+        block.fontWeight || "normal";
+
+    textarea.style.fontStyle =
+        block.fontStyle || "normal";
+
+    textarea.style.lineHeight =
+        block.lineHeight || 1.2;
+
+    textarea.style.color =
+        block.color || "#000";
+
+    textarea.style.background = "#ffffff";
 
     textarea.style.border =
         "1px solid #2F80ED";
 
     textarea.style.outline = "none";
 
-    textarea.style.resize = "none";
+    textarea.style.padding = "2px";
 
+    textarea.style.margin = "0";
+
+    textarea.style.boxSizing =
+        "border-box";
+
+        textarea.style.fontKerning = "normal";
+
+textarea.style.letterSpacing = "0";
+
+textarea.style.textRendering = "geometricPrecision";
+
+    textarea.style.whiteSpace =
+        "pre-wrap";
+
+    textarea.style.wordBreak =
+        "break-word";
+
+    textarea.style.overflowWrap =
+        "break-word";
+
+    textarea.style.zIndex = "9999";
+
+    textarea.wrap = "soft";
 
     pageState.container.appendChild(textarea);
 
-
-    // Hide original PDF text visually
     block.visible = false;
 
+    this.renderer.redrawPage(block.page);
 
     textarea.focus();
 
+    textarea.setSelectionRange(
+    textarea.value.length,
+    textarea.value.length
+);
 
     this.textarea = textarea;
 
+    this.currentBlock = block;
 
-    textarea.addEventListener(
-        "input",
-        () => {
+   const autoGrow = () => {
 
-            block.text = textarea.value;
+    textarea.style.height = "0px";
 
-            block.edited = true;
+    textarea.style.height =
+        Math.max(
+            bounds.height,
+            textarea.scrollHeight
+        ) + "px";
 
-        }
-    );
+};
 
+   autoGrow();
+
+textarea.addEventListener(
+    "input",
+    () => {
+
+        block.text =
+            textarea.value.replace(/\r\n/g, "\n");
+
+        block.edited = true;
+
+        autoGrow();
+
+        block.renderHeight =
+            textarea.scrollHeight;
+
+        this.renderer.drawEditedObjects(
+            block.page
+        );
+
+        this.renderer.drawSelection(
+            block.page
+        );
+
+    }
+);
 
 }
 
 
 
-    stopEdit(block) {
+stopEdit(block) {
 
     if (!this.textarea) {
-        return;
-    }
 
+        return;
+
+    }
 
     if (block) {
 
-        block.text = this.textarea.value;
+      block.text =
+    this.textarea.value;
 
-        block.edited = true;
+block.edited = true;
 
-        block.visible = true;
+block.visible = false;
 
-        block.editing = false;
+block.editing = false;
+
+// Save final paragraph height
+block.renderHeight =
+    this.textarea.scrollHeight;
+
+// Redraw page immediately
+this.renderer.drawEditedObjects(
+    block.page
+);
+
+this.renderer.drawSelection(
+    block.page
+);
 
     }
-
 
     this.textarea.remove();
 
     this.textarea = null;
+
+    this.currentBlock = null;
 
 }
 

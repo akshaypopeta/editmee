@@ -21,6 +21,20 @@ import EditingLayer from "./editing/editingLayer.js";
 import TextEditor from "./editing/textEditor.js";
 import EditedTextLayer from "./editing/editedTextLayer.js";
 
+const FONT_MAP = {
+
+    Helvetica: "Helvetica",
+    HelveticaNeue: "Helvetica",
+    ArialMT: "Arial",
+    Arial: "Arial",
+
+    TimesNewRomanPSMT: "Times New Roman",
+    TimesNewRoman: "Times New Roman",
+
+    CourierNewPSMT: "Courier New",
+    Courier: "Courier New"
+
+};
 
 class Renderer {
 
@@ -165,22 +179,6 @@ for (const [pageNumber, objects] of this.objectManager.getAllPages()) {
 
 }
 
-for (const pageNumber of this.pageManager.getPageNumbers()) {
-
-    const pageState =
-        this.pageManager.getPage(pageNumber);
-
-    this.editedTextLayer.render(
-
-        pageNumber,
-
-        this.objectManager.getBlockObjects(pageNumber),
-
-        pageState.viewport
-
-    );
-
-}
 
 // Temporary verification
 console.log(
@@ -429,6 +427,15 @@ handleScroll() {
 }
 
 async handlePageClick(event, pageNumber) {
+
+if (this.textEditor.textarea) {
+
+    const block = this.selectionManager.getSelectedObject();
+
+    this.textEditor.stopEdit(block);
+
+}
+
     const pageState = this.pageManager.getPage(pageNumber);
     if (!pageState || !pageState.viewport) return;
 
@@ -748,6 +755,7 @@ async search(query) {
 
 }
 
+
 drawEditedObjects(pageNumber) {
 
     const pageState = this.pageManager.getPage(pageNumber);
@@ -766,71 +774,99 @@ drawEditedObjects(pageNumber) {
 
     for (const object of objects) {
 
-        if (!object.edited) continue;
+        if (!object.edited && !object.editing) continue;
 
-        const bounds = getObjectBounds(object, viewport);
+        const bounds = getObjectBounds(
+    object,
+    viewport
+);
 
-        // Completely hide original text
-        ctx.fillStyle = "#FFFFFF";
+// ------------------------------------
+// Setup font FIRST
+// ------------------------------------
 
-        ctx.fillRect(
-            bounds.left - 3,
-            bounds.top - 3,
-            bounds.width + 6,
-            bounds.height + 6
-        );
+const fontSize =
+    object.fontSize || object.height;
 
-        // Start with original block height
-        let fontSize = bounds.height;
+const browserFont =
+    object.fontFamily || "Arial";
 
-        ctx.font = `${fontSize}px Arial`;
+ctx.font =
+`${object.fontStyle || ""}
+ ${object.fontWeight || ""}
+ ${fontSize}px
+ ${browserFont}`;
 
-        let lines = this.wrapText(
-            ctx,
-            object.text,
-            bounds.width
-        );
+ctx.textBaseline = "alphabetic";
 
-        let lineHeight = fontSize * 1.15;
+const lineHeight =
+    fontSize * (object.lineHeight || 1.2);
 
-        // Reduce font until everything fits
-        while (
-            (lines.length * lineHeight) > bounds.height &&
-            fontSize > 6
-        ) {
+// ------------------------------------
+// Wrap edited paragraph
+// ------------------------------------
 
-            fontSize -= 0.5;
+const lines =
+    this.wrapText(
+        ctx,
+        object.text,
+        bounds.width
+    );
 
-            ctx.font = `${fontSize}px Arial`;
+// ------------------------------------
+// Hide original PDF text
+// ------------------------------------
 
-            lines = this.wrapText(
-                ctx,
-                object.text,
-                bounds.width
-            );
+const whiteHeight = Math.max(
+    object.renderHeight || 0,
+    bounds.height,
+    lines.length * lineHeight
+);
 
-            lineHeight = fontSize * 1.15;
+if (object.editing || object.edited) {
 
-        }
+    ctx.fillStyle = "#FFFFFF";
 
-        ctx.fillStyle = "#000";
+const TOP_PADDING = Math.max(
+    10,
+    Math.round(fontSize * 0.55)
+);
 
-        ctx.textBaseline = "alphabetic";
+const SIDE_PADDING = 2;
 
-        const startY =
-            bounds.top +
-            fontSize;
+ctx.fillStyle = "#FFFFFF";
 
-        lines.forEach((line, index) => {
+ctx.fillRect(
+    bounds.left - SIDE_PADDING,
+    bounds.top - TOP_PADDING,
+    bounds.width + (SIDE_PADDING * 2),
+    whiteHeight
+);
 
-            ctx.fillText(
-                line,
-                bounds.left,
-                startY + (index * lineHeight)
-            );
+}
 
-        });
+// ------------------------------------
+// Draw edited paragraph
+// ------------------------------------
 
+ctx.fillStyle =
+    object.color || "#000";
+
+const baseline =
+    viewport.height -
+    (object.y * viewport.scale);
+
+const startY = baseline;
+
+lines.forEach((line, index) => {
+
+   ctx.fillText(
+    line,
+    bounds.left,
+    startY + (index * lineHeight)
+);
+
+});
     }
 
     ctx.restore();
@@ -839,35 +875,41 @@ drawEditedObjects(pageNumber) {
 
 wrapText(context, text, maxWidth) {
 
-    const words = text.split(" ");
+    const paragraphs = text.split("\n");
 
     const lines = [];
 
-    let currentLine = words[0] || "";
+    for (const paragraph of paragraphs) {
 
-    for (let i = 1; i < words.length; i++) {
+        const words = paragraph.split(" ");
 
-        const word = words[i];
+        let currentLine = words[0] || "";
 
-        const width = context.measureText(
-            currentLine + " " + word
-        ).width;
+        for (let i = 1; i < words.length; i++) {
 
-        if (width <= maxWidth) {
+            const word = words[i];
 
-            currentLine += " " + word;
+            const width = context.measureText(
+                currentLine + " " + word
+            ).width;
 
-        } else {
+            if (width <= maxWidth) {
 
-            lines.push(currentLine);
+                currentLine += " " + word;
 
-            currentLine = word;
+            } else {
+
+                lines.push(currentLine);
+
+                currentLine = word;
+
+            }
 
         }
 
-    }
+        lines.push(currentLine);
 
-    lines.push(currentLine);
+    }
 
     return lines;
 

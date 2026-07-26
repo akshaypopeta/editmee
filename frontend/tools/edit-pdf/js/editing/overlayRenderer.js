@@ -14,52 +14,138 @@ export default class OverlayRenderer {
 
     }
 
-    drawPage(pageNumber) {
+  drawPage(pageNumber) {
 
-        const pageState = this.pageManager.getPage(pageNumber);
+    const pageState = this.pageManager.getPage(pageNumber);
 
-        if (!pageState) {
-            return;
-        }
+    if (!pageState) return;
 
-        const ctx = pageState.selectionContext;
+    const ctx = pageState.selectionContext;
 
-        const viewport = pageState.viewport;
+    const viewport = pageState.viewport;
 
-        const objects =
-            this.objectManager.getBlockObjects(pageNumber);
+    const blocks =
+        this.objectManager.getBlockObjects(pageNumber);
 
-        for (const object of objects) {
+    ctx.clearRect(
+        0,
+        0,
+        pageState.selectionCanvas.width,
+        pageState.selectionCanvas.height
+    );
 
-            if (!object.edited) {
-                continue;
+    for (const block of blocks) {
+
+        if (!block.edited) continue;
+
+        const x = block.x * viewport.scale;
+
+        const top =
+    block.bounds
+        ? viewport.height -
+          (block.bounds.bottom * viewport.scale)
+        : viewport.height -
+          (block.y * viewport.scale);
+
+        const maxWidth =
+            block.width * viewport.scale;
+
+        const fontSize =
+            (block.fontSize || block.height) *
+            viewport.scale;
+
+        ctx.save();
+
+        ctx.font =
+            `${block.fontStyle || "normal"} ` +
+            `${block.fontWeight || "normal"} ` +
+            `${fontSize}px ` +
+            `${block.fontFamily || "Arial"}`;
+
+        ctx.fillStyle =
+            block.color || "#000";
+
+        ctx.textBaseline = "top";
+
+        const lineHeight =
+    Math.round(
+        fontSize *
+        (block.lineHeight || 1.2)
+    );
+
+        const paragraphs =
+            block.text.split("\n");
+
+        let y = top;
+
+        for (const paragraph of paragraphs) {
+
+            const words =
+    paragraph
+        .replace(/\t/g, "    ")
+        .split(/\s+/);
+
+            let line = "";
+
+            const lines = [];
+
+            for (let i = 0; i < words.length; i++) {
+
+                const testLine =
+                    line.length === 0
+                    ? words[i]
+                    : line + " " + words[i];
+
+                const width =
+                    ctx.measureText(testLine).width;
+
+                if (
+                    width > maxWidth &&
+                    line !== ""
+                ) {
+
+                  lines.push(line);
+
+ctx.fillText(
+    line,
+    x,
+    y
+);
+
+y += lineHeight;
+
+                    line = words[i];
+
+                } else {
+
+                    line = testLine;
+
+                }
+
             }
 
-            const x = object.x * viewport.scale;
+            if (line.length > 0) {
 
-            const y =
-                viewport.height -
-                (object.y * viewport.scale);
+               lines.push(line);
 
-            ctx.save();
+ctx.fillText(
+    line,
+    x,
+    y
+);
 
-            ctx.font =
-                `${object.height * viewport.scale}px sans-serif`;
+y += lineHeight;
 
-            ctx.fillStyle = "#000";
-
-            ctx.textBaseline = "alphabetic";
-
-            ctx.fillText(
-                object.text,
-                x,
-                y
-            );
-
-            ctx.restore();
+            }
 
         }
+
+        block.renderHeight =
+    y - top;
+
+        ctx.restore();
 
     }
 
+}
 }

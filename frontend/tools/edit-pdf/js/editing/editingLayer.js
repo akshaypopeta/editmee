@@ -175,10 +175,24 @@ createEditingBlock(pageNumber, object, bounds, viewport) {
     }
 
     // Sync with zoom/scroll
-    syncWithViewport(pageNumber, viewport) {
-        const layer = this.getLayer(pageNumber);
-        if (!layer) return;
-        layer.style.transform = `scale(${viewport.scale})`;
-        layer.style.transformOrigin = "0 0";
-    }
+   syncWithViewport(pageNumber, viewport) {
+
+    const layer = this.getLayer(pageNumber);
+
+    if (!layer) return;
+
+    // PDF canvas is already rendered at viewport.scale.
+    // Editing layer must exactly match the page size.
+    layer.style.transform = "";
+    layer.style.transformOrigin = "";
+
+    layer.style.left = "0px";
+    layer.style.top = "0px";
+
+    layer.style.width =
+        (viewport.width / window.devicePixelRatio) + "px";
+
+    layer.style.height =
+        (viewport.height / window.devicePixelRatio) + "px";
+}
 }

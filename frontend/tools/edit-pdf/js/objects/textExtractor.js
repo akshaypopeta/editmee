@@ -53,6 +53,10 @@ export default class TextExtractor {
 
                 height: item.height,
 
+fontSize: Math.abs(item.transform[0]),
+
+fontHeight: Math.abs(item.transform[3]),
+
                 fontName: item.fontName,
 
                 hasEOL: item.hasEOL

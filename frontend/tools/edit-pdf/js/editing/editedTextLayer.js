@@ -64,26 +64,43 @@ export default class EditedTextLayer {
 
         div.style.position = "absolute";
 
-        div.style.left = left + "px";
+        const bounds =
+    getObjectBounds(
+        block,
+        viewport
+    );
 
-        div.style.top = top + "px";
+div.style.left =
+    bounds.left + "px";
 
-        div.style.width =
-            (block.width * scale) + "px";
+div.style.top =
+    bounds.top + "px";
 
-        div.style.minHeight =
-            (block.height * scale) + "px";
+div.style.width =
+    bounds.width + "px";
+
+div.style.minHeight =
+    bounds.height + "px";
 
         div.style.whiteSpace = "pre-wrap";
 
         div.style.wordBreak = "break-word";
 
-        div.style.fontFamily = "Arial";
+        div.style.fontFamily =
+    block.fontFamily || "Arial";
 
-        div.style.fontSize =
-            (block.height * scale) + "px";
+div.style.fontSize =
+    (block.fontSize || block.height) *
+    viewport.scale + "px";
 
-        div.style.lineHeight = "normal";
+div.style.fontWeight =
+    block.fontWeight || "normal";
+
+div.style.fontStyle =
+    block.fontStyle || "normal";
+
+div.style.color =
+    block.color || "#000";
 
         div.style.color = "#000";
 
