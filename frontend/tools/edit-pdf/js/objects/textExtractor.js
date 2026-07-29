@@ -37,31 +37,38 @@ export default class TextExtractor {
 
         for (const item of textContent.items) {
 
-            objects.push({
+         objects.push({
 
-                id: id++,
+    id: id++,
 
-                type: "text",
+    type: "text",
 
-                page: pageNumber,
+    page: pageNumber,
 
-                text: item.str,
+    text: item.str,
 
-                transform: item.transform,
+    transform: item.transform,
 
-                width: item.width,
+    width: item.width,
 
-                height: item.height,
+    height: item.height,
 
-fontSize: Math.abs(item.transform[0]),
+    fontSize: Math.abs(item.transform[0]),
 
-fontHeight: Math.abs(item.transform[3]),
+    fontHeight: Math.abs(item.transform[3]),
 
-                fontName: item.fontName,
+    fontName: item.fontName,
 
-                hasEOL: item.hasEOL
+    // New formatting properties
+    fontFamily: item.fontName,
+    fontWeight: /Bold/i.test(item.fontName) ? "bold" : "normal",
+    fontStyle: /Italic|Oblique/i.test(item.fontName) ? "italic" : "normal",
+    color: "#000000",
+    lineHeight: 1.2,
 
-            });
+    hasEOL: item.hasEOL
+
+});
 
         }
 

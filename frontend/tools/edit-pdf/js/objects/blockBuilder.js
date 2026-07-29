@@ -112,15 +112,15 @@ maxBottom = Math.max(maxBottom, y);
 
                 fontName: object.fontName || "",
 
-                fontFamily: object.fontName || "Arial",
+fontFamily: object.fontFamily || "Arial",
 
-                fontWeight: "normal",
+fontWeight: object.fontWeight || "normal",
 
-                fontStyle: "normal",
+fontStyle: object.fontStyle || "normal",
 
-                color: "#000000",
+color: object.color || "#000000",
 
-                lineHeight: 1.2,
+lineHeight: object.lineHeight || 1.2,
 
                 text,
 

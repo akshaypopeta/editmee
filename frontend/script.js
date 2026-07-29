@@ -5,7 +5,7 @@ const tools = [
     description: "Combine PDFs in the order you want with the easiest PDF merger available.",
     icon: "fa-solid fa-code-merge",
     color: "red",
-    link: "tools/merge-pdf/index.html"
+    link: "/tools/merge-pdf/"
   },
 
   {
@@ -13,7 +13,7 @@ const tools = [
     description: "Separate one page or a whole set for easy conversion into independent PDF files.",
     icon: "fa-solid fa-scissors",
     color: "orange",
-    link: "tools/split-pdf/index.html"
+    link: "/tools/split-pdf/"
   },
 
  {
@@ -21,7 +21,7 @@ const tools = [
     description: "Convert each PDF page into JPG or extract images from PDFs.",
     icon: "fa-solid fa-image",
     color: "yellow",
-  link: "tools/pdf-jpg/index.html"
+  link: "/tools/pdf-jpg/"
   },
 
   {
@@ -29,7 +29,7 @@ const tools = [
     description: "Convert JPG images into PDF in seconds.",
     icon: "fa-solid fa-file-image",
     color: "yellow",
-    link: "tools/jpg-pdf/index.html"
+    link: "/tools/jpg-pdf/"
   },
 
   {
@@ -37,7 +37,7 @@ const tools = [
     description: "Sign yourself or request electronic signatures from others.",
     icon: "fa-solid fa-signature",
     color: "blue",
-    link: "tools/signed-pdf/index.html"
+    link: "/tools/signed-pdf/"
   },
 
   {
@@ -45,7 +45,7 @@ const tools = [
     description: "Stamp an image or text over your PDF in seconds.",
     icon: "fa-solid fa-stamp",
     color: "purple",
-    link: "tools/watermark-pdf/index.html"
+    link: "/tools/watermark-pdf/"
   },
 
   {
@@ -53,7 +53,7 @@ const tools = [
     description: "Rotate your PDFs the way you need them.",
     icon: "fa-solid fa-rotate",
     color: "purple",
-  link: "tools/rotate-pdf/index.html"
+    link: "/tools/rotate-pdf/"
   },
 
   {
@@ -61,7 +61,7 @@ const tools = [
     description: "Protect PDF files with a password and encryption.",
     icon: "fa-solid fa-lock",
     color: "blue",
-  link: "tools/protect-pdf/index.html"
+    link: "/tools/protect-pdf/"
   },
 
   {
@@ -69,7 +69,7 @@ const tools = [
     description: "Remove unwanted pages from your PDF instantly.",
     icon: "fa-solid fa-trash",
     color: "red",
-  link: "tools/delete-pdf/index.html"
+    link: "/tools/delete-pdf/"
   },
 
  {
@@ -77,7 +77,7 @@ const tools = [
   description: "Extract and keep only selected pages from your PDF instantly.",
   icon: "fa-solid fa-file-export",
   color: "green",
-  link: "tools/extract-pdf/index.html"
+  link: "/tools/extract-pdf/"
 },
 
 {
@@ -85,7 +85,7 @@ const tools = [
   description: "Add page numbers to your PDF documents instantly.",
   icon: "fa-solid fa-list-ol",
   color: "orange",
-  link: "tools/pagenumber-pdf/index.html"
+  link: "/tools/pagenumber-pdf/"
 },
 
 {
@@ -93,7 +93,7 @@ const tools = [
   description: "Reduce the file size of your images without losing quality.",
   icon: "fa-solid fa-compress",
   color: "green",
-  link: "tools/image-compressor/index.html"
+  link: "/tools/image-compressor/"
 }
 
   // ,{
@@ -207,10 +207,12 @@ function renderTools() {
 
     `;
 
-    toolCard.addEventListener("click", () => {
+    toolCard.tabIndex = 0;
 
-  window.location.href = tool.link;
-
+toolCard.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        window.location.href = tool.link;
+    }
 });
 
     toolsGrid.appendChild(toolCard);
