@@ -94,7 +94,7 @@ const tools = [
   icon: "fa-solid fa-compress",
   color: "green",
   link: "/tools/image-compressor/"
-}
+},
 
   // ,{
   //   title: "Compress PDF",
@@ -177,80 +177,79 @@ const tools = [
   // }
 ];
 
-
-
 const toolsGrid = document.getElementById("toolsGrid");
 
 function renderTools() {
 
-  toolsGrid.innerHTML = "";
+    if (!toolsGrid) return;
 
-  tools.forEach((tool) => {
+    toolsGrid.innerHTML = "";
 
-    const toolCard = document.createElement("div");
+    tools.forEach((tool) => {
 
-    toolCard.classList.add("tool-card");
+        const toolCard = document.createElement("div");
+        toolCard.classList.add("tool-card");
 
-    toolCard.innerHTML = `
+        toolCard.innerHTML = `
+            <div class="tool-top">
+                <div class="tool-icon ${tool.color}">
+                    <i class="${tool.icon}"></i>
+                </div>
+            </div>
 
-      <div class="tool-top">
+            <h3>${tool.title}</h3>
 
-        <div class="tool-icon ${tool.color}">
-          <i class="${tool.icon}"></i>
-        </div>
+            <p>${tool.description}</p>
+        `;
 
-      </div>
+        toolCard.tabIndex = 0;
+        toolCard.setAttribute("role", "button");
 
-      <h3>${tool.title}</h3>
+        // Mouse click
+        toolCard.addEventListener("click", () => {
+            window.location.href = tool.link;
+        });
 
-      <p>${tool.description}</p>
+        // Keyboard navigation
+        toolCard.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                window.location.href = tool.link;
+            }
+        });
 
-    `;
+        toolsGrid.appendChild(toolCard);
 
-    toolCard.tabIndex = 0;
-
-toolCard.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-        window.location.href = tool.link;
-    }
-});
-
-    toolsGrid.appendChild(toolCard);
-
-  });
+    });
 
 }
 
 renderTools();
 
-const hamburgerBtn =
-document.getElementById("hamburgerBtn");
 
-const mobileMenu =
-document.getElementById("mobileMenu");
+// ==========================
+// Mobile Menu
+// ==========================
 
-hamburgerBtn.addEventListener("click", () => {
+const hamburgerBtn = document.getElementById("hamburgerBtn");
+const mobileMenu = document.getElementById("mobileMenu");
 
-    mobileMenu.classList.toggle("show");
+if (hamburgerBtn && mobileMenu) {
 
-});
-
-window.addEventListener("resize", () => {
-
-    if (window.innerWidth > 992) {
-
-        mobileMenu.classList.remove("show");
-
-    }
-
-});
-
-document.querySelectorAll(".mobile-menu a").forEach(link => {
-
-    link.addEventListener("click", () => {
-
-        mobileMenu.classList.remove("show");
-
+    hamburgerBtn.addEventListener("click", () => {
+        mobileMenu.classList.toggle("show");
     });
 
-});
+    window.addEventListener("resize", () => {
+        if (window.innerWidth > 992) {
+            mobileMenu.classList.remove("show");
+        }
+    });
+
+    document.querySelectorAll(".mobile-menu a").forEach(link => {
+        link.addEventListener("click", () => {
+            mobileMenu.classList.remove("show");
+        });
+    });
+
+}
