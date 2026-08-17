@@ -3,6 +3,7 @@ import { PDFDocument } from 'pdf-lib';
 import { PdfEngine } from '../../core/pdf-engine/PdfEngine';
 import { FileEngine } from '../../core/file-engine/FileEngine';
 import { EditPdfTool } from './EditPdfTool';
+import { MergePdfTool } from './MergePdfTool';
 
 export const editPdfToolDef: ToolDefinition = {
   id: 'edit-pdf',
@@ -48,20 +49,20 @@ export const editPdfToolDef: ToolDefinition = {
 export const pdfMergerToolDef: ToolDefinition = {
   id: 'pdf-merger',
   name: 'PDF Merger',
-  description: 'Combine multiple PDF documents into a single organized PDF file.',
+  description: 'Combine 2 or more PDF documents into a single organized, high-quality PDF file with custom page reordering.',
   category: 'pdf',
   subcategory: 'organize',
   iconName: 'Merge',
-  version: '1.0.0',
-  tags: ['pdf', 'merge', 'combine', 'join'],
+  version: '2.0.0',
+  tags: ['pdf', 'merge', 'combine', 'join', 'multi-file'],
   executionMode: 'client',
-  supportsBatch: false,
+  supportsBatch: true,
   supportsWorkflow: true,
   requiresAI: false,
   capabilities: {
     clientSide: true,
-    workerSupported: false,
-    batchSupported: false,
+    workerSupported: true,
+    batchSupported: true,
     workflowSupported: true,
     aiPowered: false,
     offlineReady: true,
@@ -69,7 +70,7 @@ export const pdfMergerToolDef: ToolDefinition = {
   },
   inputSchema: {
     fields: [
-      { name: 'file', label: 'Primary PDF', type: 'file', accept: 'application/pdf', required: true },
+      { name: 'files', label: 'PDF Documents (Select 2 or more)', type: 'file', accept: 'application/pdf', required: true, multiple: true },
     ],
   },
   outputSchema: {
@@ -77,17 +78,23 @@ export const pdfMergerToolDef: ToolDefinition = {
     mimeType: 'application/pdf',
     filename: 'merged_document.pdf',
   },
+  customWorkspace: MergePdfTool,
   execute: async (input: any): Promise<ToolResult> => {
-    if (!input.file) {
-      return { success: false, error: 'Please upload a PDF file' };
+    const rawFiles = input.files || (input.file ? [input.file] : []);
+    const fileList = Array.isArray(rawFiles) ? rawFiles : [rawFiles];
+    if (fileList.length < 2) {
+      return { success: false, error: 'Select at least 2 PDF files to merge.' };
     }
-    const buf = await FileEngine.readAsArrayBuffer(input.file);
-    const mergedBytes = await PdfEngine.mergePdfs([buf]);
+    const buffers: ArrayBuffer[] = [];
+    for (const f of fileList) {
+      buffers.push(await FileEngine.readAsArrayBuffer(f));
+    }
+    const mergedBytes = await PdfEngine.mergePdfs(buffers);
     const blob = new Blob([mergedBytes], { type: 'application/pdf' });
     return {
       success: true,
       blob,
-      filename: 'merged_' + input.file.name,
+      filename: 'merged_document.pdf',
     };
   },
 };

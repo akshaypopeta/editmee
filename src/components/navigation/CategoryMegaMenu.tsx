@@ -14,6 +14,14 @@ import {
   Layers,
   ChevronDown,
   ArrowRight,
+  FolderArchive,
+  Music,
+  Palette,
+  Megaphone,
+  Globe,
+  Workflow,
+  BarChart,
+  CheckSquare,
 } from 'lucide-react';
 
 export interface CategoryConfig {
@@ -129,6 +137,65 @@ export const CATEGORIES_CONFIG: CategoryConfig[] = [
     icon: Shield,
     subgroups: [
       { name: 'ENCRYPTION & KEYS', toolIds: ['password-generator', 'file-encryptor', 'file-decryptor', 'metadata-stripper', 'hash-generator'] },
+    ],
+  },
+  {
+    id: 'files',
+    name: 'FILE CONVERSION',
+    description: 'Universal document, ebook, and archive conversion utilities',
+    icon: FolderArchive,
+    subgroups: [
+      { name: 'EBOOK & OFFICE', matchTag: 'ebook' },
+      { name: 'ARCHIVE & BACKUP', matchTag: 'archive' },
+    ],
+  },
+  {
+    id: 'media',
+    name: 'MEDIA & AUDIO',
+    description: 'Audio transcriber, video compression, sound effects & wave generator',
+    icon: Music,
+    subgroups: [
+      { name: 'AUDIO TOOLS', matchTag: 'audio' },
+      { name: 'VIDEO UTILITIES', matchTag: 'video' },
+    ],
+  },
+  {
+    id: 'design',
+    name: 'GRAPHIC DESIGN',
+    description: 'Mockups, badges, banners, social covers & canvas graphics',
+    icon: Palette,
+    subgroups: [
+      { name: 'MOCKUPS & COVERS', matchTag: 'mockup' },
+      { name: 'BANNERS & SEALS', matchTag: 'badge' },
+    ],
+  },
+  {
+    id: 'marketing',
+    name: 'MARKETING & SEO',
+    description: 'Copywriting, meta tags, schema generators, UTM builders & campaign metrics',
+    icon: Megaphone,
+    subgroups: [
+      { name: 'CAMPAIGN & ANALYTICS', matchTag: 'marketing' },
+      { name: 'SEARCH & METADATA', matchTag: 'seo' },
+    ],
+  },
+  {
+    id: 'automation',
+    name: 'WORKFLOW & AUTOMATION',
+    description: 'Scheduled batch pipelines, webhooks, format parsers & automated builders',
+    icon: Workflow,
+    subgroups: [
+      { name: 'PIPELINES', matchTag: 'automation' },
+      { name: 'INTEGRATIONS', matchTag: 'workflow' },
+    ],
+  },
+  {
+    id: 'productivity',
+    name: 'PRODUCTIVITY SUITE',
+    description: 'Timers, Kanban planners, checklists, focus boards & sprint utilities',
+    icon: CheckSquare,
+    subgroups: [
+      { name: 'TIME & FOCUS', matchTag: 'productivity' },
     ],
   },
 ];

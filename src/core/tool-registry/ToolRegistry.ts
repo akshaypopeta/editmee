@@ -71,10 +71,22 @@ export class ToolRegistry {
   }
 
   /**
-   * Get all tools within a specific category
+   * Get all tools within a specific category with smart alias resolution
    */
-  public getByCategory(category: ToolCategory): ToolDefinition[] {
-    return this.getAll().filter((t) => t.category === category);
+  public getByCategory(category: ToolCategory | string): ToolDefinition[] {
+    const target = (category || '').toLowerCase().trim();
+    return this.getAll().filter((t) => {
+      const cat = t.category as string;
+      if (cat === target) return true;
+      if (target === 'marketing' && (cat === 'seo' || t.tags.includes('marketing') || t.tags.includes('seo'))) return true;
+      if (target === 'seo' && (cat === 'marketing' || t.tags.includes('seo'))) return true;
+      if (target === 'productivity' && (cat === 'utilities' || t.tags.includes('productivity') || t.tags.includes('lifestyle'))) return true;
+      if (target === 'utilities' && (cat === 'productivity' || t.tags.includes('utilities'))) return true;
+      if (target === 'automation' && (cat === 'workflow' || cat === 'developer' || t.tags.includes('automation') || t.tags.includes('devops') || t.tags.includes('ci/cd'))) return true;
+      if (target === 'files' && (cat === 'documents' && t.tags.includes('conversion'))) return true;
+      if (target === 'design' && (cat === 'images' && (t.tags.includes('mockup') || t.tags.includes('banner')))) return true;
+      return false;
+    });
   }
 
   /**

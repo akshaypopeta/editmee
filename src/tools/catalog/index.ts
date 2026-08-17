@@ -9,6 +9,7 @@ import { mediaCatalog } from './mediaCatalog';
 import { pdfCatalog } from './pdfCatalog';
 import { resumesCatalog } from './resumesCatalog';
 import { securityCatalog } from './securityCatalog';
+import { allNew1000Tools } from './new_batches';
 import { ToolDefinition } from '../../types';
 
 export {
@@ -23,6 +24,7 @@ export {
   pdfCatalog,
   resumesCatalog,
   securityCatalog,
+  allNew1000Tools,
 };
 
 export const allCatalogs: { category: string; title: string; tools: ToolDefinition[] }[] = [
@@ -37,6 +39,7 @@ export const allCatalogs: { category: string; title: string; tools: ToolDefiniti
   { category: 'media', title: 'Audio & Media Studio', tools: mediaCatalog },
   { category: 'security', title: 'Security & Cryptography', tools: securityCatalog },
   { category: 'ai', title: 'AI & Intelligence Suite', tools: aiCatalog },
+  { category: 'new1000', title: 'Master Expansion Suite (1,000 Tools)', tools: allNew1000Tools },
 ];
 
 export const allCatalogTools: ToolDefinition[] = [
@@ -51,4 +54,5 @@ export const allCatalogTools: ToolDefinition[] = [
   ...mediaCatalog,
   ...securityCatalog,
   ...aiCatalog,
+  ...allNew1000Tools,
 ];

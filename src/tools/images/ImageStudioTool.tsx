@@ -43,10 +43,12 @@ import {
   Palette,
   Image as ImageIcon,
   FileImage,
+  X,
 } from 'lucide-react';
 
 export const ImageStudioTool: React.FC = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [showMobileSidebar, setShowMobileSidebar] = useState<boolean>(false);
   const [imgElement, setImgElement] = useState<HTMLImageElement | null>(null);
 
   // Transformations
@@ -496,8 +498,8 @@ export const ImageStudioTool: React.FC = () => {
   return (
     <div id="image-studio-workspace" className="flex flex-col h-[calc(100vh-8.5rem)] bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-md">
       {/* Top Header Bar */}
-      <div className="h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between gap-3 shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="min-h-14 bg-slate-900 border-b border-slate-800 px-2 sm:px-4 py-1.5 flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-0.5 max-w-full">
           {!imageFile ? (
             <label
               htmlFor="img-upload-top"
@@ -514,7 +516,7 @@ export const ImageStudioTool: React.FC = () => {
               />
             </label>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <label
                 htmlFor="img-upload-replace"
                 className="p-1.5 rounded-lg border border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white cursor-pointer transition-colors"
@@ -564,19 +566,19 @@ export const ImageStudioTool: React.FC = () => {
               {/* Quick AI & Engine Actions */}
               <button
                 onClick={handleAutoEnhance}
-                className="px-2.5 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-medium text-amber-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-2.5 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-medium text-amber-300 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
                 title="Auto Tone & Contrast Equalizer"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                Auto Enhance
+                <span className="hidden sm:inline">Auto Enhance</span>
               </button>
               <button
                 onClick={handleUpscale2x}
-                className="px-2.5 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-xs font-medium text-blue-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-2.5 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-xs font-medium text-blue-300 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
                 title="2x Super-Resolution Upscaler"
               >
                 <Maximize2 className="w-3.5 h-3.5 text-blue-400" />
-                2x Upscale
+                <span className="hidden sm:inline">2x Upscale</span>
               </button>
 
               <div className="h-4 w-px bg-slate-800" />
@@ -604,16 +606,16 @@ export const ImageStudioTool: React.FC = () => {
 
         {/* Center Canvas Controls */}
         {imageFile && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setShowSplitView(!showSplitView)}
-              className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                 showSplitView ? 'bg-indigo-600/30 border-indigo-500 text-indigo-300' : 'border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}
               title="Split View Before / After"
             >
               <Columns className="w-3.5 h-3.5" />
-              Before / After
+              <span className="hidden sm:inline">Before / After</span>
             </button>
 
             <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-1 text-slate-400">
@@ -624,7 +626,7 @@ export const ImageStudioTool: React.FC = () => {
               >
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
-              <span className="text-xs px-2 font-mono text-slate-200">{Math.round(zoomScale * 100)}%</span>
+              <span className="text-xs px-1.5 sm:px-2 font-mono text-slate-200">{Math.round(zoomScale * 100)}%</span>
               <button
                 onClick={() => setZoomScale((z) => Math.min(3, Number((z + 0.1).toFixed(1))))}
                 className="p-1 hover:text-white cursor-pointer"
@@ -634,7 +636,7 @@ export const ImageStudioTool: React.FC = () => {
               </button>
               <button
                 onClick={() => setZoomScale(1)}
-                className="px-2 py-0.5 text-[10px] hover:text-white text-slate-400 border-l border-slate-800 cursor-pointer"
+                className="px-1.5 py-0.5 text-[10px] hover:text-white text-slate-400 border-l border-slate-800 cursor-pointer"
               >
                 100%
               </button>
@@ -644,20 +646,30 @@ export const ImageStudioTool: React.FC = () => {
 
         {/* Right Export Actions */}
         {imageFile && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Mobile Tool Panel Toggle */}
+            <button
+              onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+              className="lg:hidden p-2 rounded-lg border border-slate-800 hover:bg-slate-800 text-slate-300 flex items-center gap-1 text-xs cursor-pointer"
+              title="Toggle Edit Tools"
+            >
+              <Sliders className="w-4 h-4 text-blue-400" />
+              <span className="hidden sm:inline">Tools</span>
+            </button>
+
             <select
               value={exportFormat}
               onChange={(e: any) => setExportFormat(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none"
+              className="bg-slate-950 border border-slate-800 rounded-lg px-2 sm:px-2.5 py-1.5 text-xs text-slate-200 outline-none"
             >
-              <option value="image/png">PNG (Lossless)</option>
-              <option value="image/jpeg">JPG (Standard)</option>
-              <option value="image/webp">WebP (Modern)</option>
+              <option value="image/png">PNG</option>
+              <option value="image/jpeg">JPG</option>
+              <option value="image/webp">WebP</option>
             </select>
 
             <button
               onClick={handleExport}
-              className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-xs font-semibold text-white flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+              className="px-3.5 sm:px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-xs font-semibold text-white flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
             >
               <Download className="w-4 h-4" />
               Export
@@ -667,7 +679,7 @@ export const ImageStudioTool: React.FC = () => {
       </div>
 
       {/* Main Split Layout: Tool Tabs / Sidebar & Canvas Viewport */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         {!imageFile ? (
           /* Empty State Dropzone */
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-950/40">
@@ -695,36 +707,56 @@ export const ImageStudioTool: React.FC = () => {
           </div>
         ) : (
           <>
+            {/* MOBILE SIDEBAR BACKDROP */}
+            {showMobileSidebar && (
+              <div
+                onClick={() => setShowMobileSidebar(false)}
+                className="fixed inset-0 bg-black/60 z-30 lg:hidden backdrop-blur-xs"
+              />
+            )}
+
             {/* Left Sidebar: Tool Categories & Adjustments */}
-            <div className="w-80 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
+            <div
+              className={`fixed inset-y-0 left-0 z-40 w-80 bg-slate-900 border-r border-slate-800 flex flex-col transition-transform duration-200 lg:static lg:translate-x-0 ${
+                showMobileSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+              }`}
+            >
               {/* Category Tab Bar */}
-              <div className="p-2 border-b border-slate-800 flex flex-wrap gap-1 bg-slate-950/60">
-                {[
-                  { id: 'adjust', label: 'Color', icon: Sliders },
-                  { id: 'filters', label: 'Filters', icon: Palette },
-                  { id: 'resize', label: 'Resize', icon: Maximize2 },
-                  { id: 'bg_remove', label: 'Cutout', icon: Wand2 },
-                  { id: 'annotate', label: 'Draw', icon: PenTool },
-                  { id: 'watermark', label: 'Watermark', icon: Type },
-                  { id: 'passport', label: 'Passport', icon: FileImage },
-                ].map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id as any)}
-                      className={`flex-1 min-w-[64px] py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                        isActive
-                          ? 'bg-blue-600 text-white shadow-sm font-semibold'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-                      }`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      {tab.label}
-                    </button>
-                  );
-                })}
+              <div className="p-2 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+                <div className="flex flex-wrap gap-1 flex-1">
+                  {[
+                    { id: 'adjust', label: 'Color', icon: Sliders },
+                    { id: 'filters', label: 'Filters', icon: Palette },
+                    { id: 'resize', label: 'Resize', icon: Maximize2 },
+                    { id: 'bg_remove', label: 'Cutout', icon: Wand2 },
+                    { id: 'annotate', label: 'Draw', icon: PenTool },
+                    { id: 'watermark', label: 'Watermark', icon: Type },
+                    { id: 'passport', label: 'Passport', icon: FileImage },
+                  ].map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as any)}
+                        className={`flex-1 min-w-[58px] py-1.5 px-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-colors cursor-pointer ${
+                          isActive
+                            ? 'bg-blue-600 text-white shadow-sm font-semibold'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        }`}
+                      >
+                        <Icon className="w-3 h-3" />
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => setShowMobileSidebar(false)}
+                  className="lg:hidden p-1.5 ml-1 text-slate-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
               {/* Tab Content Panel */}

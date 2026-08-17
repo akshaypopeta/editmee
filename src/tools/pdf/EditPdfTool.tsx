@@ -85,6 +85,7 @@ export const EditPdfTool: React.FC = () => {
   >('select');
 
   const [activeSidebarTab, setActiveSidebarTab] = useState<'pages' | 'layers' | 'search' | 'watermark' | 'metadata'>('pages');
+  const [showMobileSidebar, setShowMobileSidebar] = useState<boolean>(false);
   const [isLoadingPdf, setIsLoadingPdf] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -155,9 +156,34 @@ export const EditPdfTool: React.FC = () => {
 
   // --- Canvas DOM Refs ---
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const stageContainerRef = useRef<HTMLDivElement | null>(null);
   const stageOverlayRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Fit Width and Fit Page helpers
+  const handleFitWidth = useCallback(() => {
+    if (!stageContainerRef.current) return;
+    const pSize = docInfo?.pageSizes[currentPage - 1] || { width: 595.28, height: 841.89 };
+    const containerWidth = stageContainerRef.current.clientWidth - 48; // account for padding
+    if (containerWidth > 100 && pSize.width > 0) {
+      const targetScale = Math.max(0.4, Math.min(2.5, Number((containerWidth / pSize.width).toFixed(2))));
+      setScale(targetScale);
+    }
+  }, [docInfo, currentPage]);
+
+  const handleFitPage = useCallback(() => {
+    if (!stageContainerRef.current) return;
+    const pSize = docInfo?.pageSizes[currentPage - 1] || { width: 595.28, height: 841.89 };
+    const containerWidth = stageContainerRef.current.clientWidth - 48;
+    const containerHeight = stageContainerRef.current.clientHeight - 48;
+    if (containerWidth > 100 && containerHeight > 100 && pSize.width > 0 && pSize.height > 0) {
+      const scaleX = containerWidth / pSize.width;
+      const scaleY = containerHeight / pSize.height;
+      const targetScale = Math.max(0.4, Math.min(2.5, Number(Math.min(scaleX, scaleY).toFixed(2))));
+      setScale(targetScale);
+    }
+  }, [docInfo, currentPage]);
 
   // Push state to undo/redo history
   const recordHistory = useCallback(
@@ -247,6 +273,11 @@ export const EditPdfTool: React.FC = () => {
       setDocInfo(info);
       setNumPages(info.numPages);
       setCurrentPage(1);
+
+      if (stageContainerRef.current) {
+        stageContainerRef.current.scrollTop = 0;
+        stageContainerRef.current.scrollLeft = 0;
+      }
 
       setMetaTitle(info.title || fileName.replace('.pdf', ''));
       setMetaAuthor(info.author || '');
@@ -870,28 +901,28 @@ export const EditPdfTool: React.FC = () => {
   return (
     <div id="edit-pdf-workspace" className="flex flex-col h-[calc(100vh-8.5rem)] bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-md">
       {/* 1. TOP MASTER TOOLBAR */}
-      <div className="h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between gap-3 shrink-0">
+      <div className="min-h-14 bg-slate-900 border-b border-slate-800 px-2 sm:px-4 py-1.5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shrink-0 z-20">
         {/* Left Section: File Operations & Mode Switchers */}
-        <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+        <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto py-1 max-w-full">
           {!pdfBuffer ? (
             <div className="flex items-center gap-2">
               <label
                 htmlFor="pdf-file-picker"
-                className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-xs font-semibold text-white flex items-center gap-2 cursor-pointer transition-colors shadow-sm"
+                className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-xs font-semibold text-white flex items-center gap-2 cursor-pointer transition-colors shadow-sm shrink-0"
               >
                 <Upload className="w-4 h-4" />
                 Open PDF
               </label>
               <button
                 onClick={handleLoadSample}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                Load Sample PDF
+                <span className="hidden sm:inline">Load</span> Sample PDF
               </button>
               <button
                 onClick={handleCreateBlank}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
               >
                 <FilePlus className="w-3.5 h-3.5 text-blue-400" />
                 New Blank
@@ -905,7 +936,7 @@ export const EditPdfTool: React.FC = () => {
                   setActiveMode('select');
                   setEditingTextId(null);
                 }}
-                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
                   activeMode === 'select'
                     ? 'bg-blue-600/30 border-blue-500 text-blue-300'
                     : 'border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -918,7 +949,7 @@ export const EditPdfTool: React.FC = () => {
               {/* Text Edit / Replace Mode */}
               <button
                 onClick={() => setActiveMode('text-edit')}
-                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
                   activeMode === 'text-edit'
                     ? 'bg-blue-600/30 border-blue-500 text-blue-300'
                     : 'border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -931,7 +962,7 @@ export const EditPdfTool: React.FC = () => {
               {/* Add New Text */}
               <button
                 onClick={() => setActiveMode('text-add')}
-                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
                   activeMode === 'text-add'
                     ? 'bg-blue-600/30 border-blue-500 text-blue-300'
                     : 'border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -944,7 +975,7 @@ export const EditPdfTool: React.FC = () => {
               {/* Draw / Pen */}
               <button
                 onClick={() => setActiveMode('draw')}
-                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
                   activeMode === 'draw'
                     ? 'bg-blue-600/30 border-blue-500 text-blue-300'
                     : 'border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -957,7 +988,7 @@ export const EditPdfTool: React.FC = () => {
               {/* Highlighter */}
               <button
                 onClick={() => setActiveMode('highlight')}
-                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
                   activeMode === 'highlight'
                     ? 'bg-amber-600/30 border-amber-500 text-amber-300'
                     : 'border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -970,7 +1001,7 @@ export const EditPdfTool: React.FC = () => {
               {/* Redact */}
               <button
                 onClick={() => setActiveMode('redact')}
-                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
                   activeMode === 'redact'
                     ? 'bg-rose-600/30 border-rose-500 text-rose-300'
                     : 'border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -983,7 +1014,7 @@ export const EditPdfTool: React.FC = () => {
               {/* Shapes */}
               <button
                 onClick={() => setActiveMode('rect')}
-                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
                   activeMode === 'rect'
                     ? 'bg-blue-600/30 border-blue-500 text-blue-300'
                     : 'border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -996,7 +1027,7 @@ export const EditPdfTool: React.FC = () => {
               {/* Stamp */}
               <button
                 onClick={() => setActiveMode('stamp')}
-                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
                   activeMode === 'stamp'
                     ? 'bg-blue-600/30 border-blue-500 text-blue-300'
                     : 'border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -1009,7 +1040,7 @@ export const EditPdfTool: React.FC = () => {
               {/* Signature */}
               <button
                 onClick={() => setShowSigModal(true)}
-                className="p-2 rounded-lg text-xs font-medium border border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="p-2 rounded-lg text-xs font-medium border border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
                 title="Sign PDF"
               >
                 <FileSignature className="w-4 h-4 text-emerald-400" />
@@ -1018,7 +1049,7 @@ export const EditPdfTool: React.FC = () => {
               {/* Image upload */}
               <button
                 onClick={() => imageInputRef.current?.click()}
-                className="p-2 rounded-lg text-xs font-medium border border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="p-2 rounded-lg text-xs font-medium border border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
                 title="Insert Image"
               >
                 <ImageIcon className="w-4 h-4 text-blue-400" />
@@ -1027,7 +1058,7 @@ export const EditPdfTool: React.FC = () => {
               {/* Form Controls */}
               <button
                 onClick={() => setActiveMode('form-text')}
-                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`p-2 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
                   activeMode === 'form-text'
                     ? 'bg-purple-600/30 border-purple-500 text-purple-300'
                     : 'border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -1037,13 +1068,13 @@ export const EditPdfTool: React.FC = () => {
                 <CheckSquare className="w-4 h-4" />
               </button>
 
-              <div className="h-5 w-px bg-slate-800 mx-1"></div>
+              <div className="h-5 w-px bg-slate-800 mx-1 shrink-0"></div>
 
               {/* Undo / Redo */}
               <button
                 onClick={handleUndo}
                 disabled={historyIndex <= 0}
-                className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white disabled:opacity-30 cursor-pointer"
+                className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white disabled:opacity-30 cursor-pointer shrink-0"
                 title="Undo (Ctrl+Z)"
               >
                 <Undo className="w-4 h-4" />
@@ -1051,7 +1082,7 @@ export const EditPdfTool: React.FC = () => {
               <button
                 onClick={handleRedo}
                 disabled={historyIndex >= history.length - 1}
-                className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white disabled:opacity-30 cursor-pointer"
+                className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white disabled:opacity-30 cursor-pointer shrink-0"
                 title="Redo (Ctrl+Shift+Z)"
               >
                 <Redo className="w-4 h-4" />
@@ -1076,39 +1107,35 @@ export const EditPdfTool: React.FC = () => {
           />
         </div>
 
-        {/* Center: Page Jump & Quick Search */}
-        {pdfBuffer && (
-          <div className="hidden lg:flex items-center gap-3">
-            <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-400">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage <= 1}
-                className="p-1 hover:text-white disabled:opacity-30 cursor-pointer"
-                title="Previous Page"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              <span className="font-mono text-slate-200">
-                Page <span className="font-bold text-blue-400">{currentPage}</span> of {numPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(numPages, p + 1))}
-                disabled={currentPage >= numPages}
-                className="p-1 hover:text-white disabled:opacity-30 cursor-pointer"
-                title="Next Page"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Right Section: Zoom & Master Export */}
-        <div className="flex items-center gap-2">
+        {/* Right Section: Page Indicator, Zoom & Master Export */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 overflow-x-auto py-1 max-w-full">
           {pdfBuffer && (
             <>
+              {/* Page Jump */}
+              <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 shrink-0">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="p-0.5 hover:text-white disabled:opacity-30 cursor-pointer"
+                  title="Previous Page"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <span className="font-mono text-slate-200 text-[11px] sm:text-xs whitespace-nowrap">
+                  <span className="font-bold text-blue-400">{currentPage}</span>/{numPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(numPages, p + 1))}
+                  disabled={currentPage >= numPages}
+                  className="p-0.5 hover:text-white disabled:opacity-30 cursor-pointer"
+                  title="Next Page"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
               {/* Zoom Controls */}
-              <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-1 text-slate-400">
+              <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-0.5 sm:p-1 text-slate-400 shrink-0">
                 <button
                   onClick={() => setScale((s) => Math.max(0.4, Number((s - 0.15).toFixed(2))))}
                   className="p-1 hover:text-white cursor-pointer"
@@ -1116,7 +1143,13 @@ export const EditPdfTool: React.FC = () => {
                 >
                   <ZoomOut className="w-3.5 h-3.5" />
                 </button>
-                <span className="text-xs px-1.5 font-mono text-slate-200">{Math.round(scale * 100)}%</span>
+                <button
+                  onClick={() => setScale(1.0)}
+                  className="text-xs px-1 sm:px-1.5 font-mono text-slate-200 hover:text-white cursor-pointer"
+                  title="Reset to 100%"
+                >
+                  {Math.round(scale * 100)}%
+                </button>
                 <button
                   onClick={() => setScale((s) => Math.min(2.5, Number((s + 0.15).toFixed(2))))}
                   className="p-1 hover:text-white cursor-pointer"
@@ -1124,12 +1157,29 @@ export const EditPdfTool: React.FC = () => {
                 >
                   <ZoomIn className="w-3.5 h-3.5" />
                 </button>
+                <button
+                  onClick={handleFitWidth}
+                  className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] text-slate-400 hover:text-white border-l border-slate-800 cursor-pointer"
+                  title="Fit Page to Width"
+                >
+                  Fit
+                </button>
               </div>
+
+              {/* Mobile Sidebar Drawer Toggle */}
+              <button
+                onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+                className="lg:hidden p-1.5 sm:p-2 rounded-lg border border-slate-800 hover:bg-slate-800 text-slate-300 flex items-center gap-1 text-xs cursor-pointer shrink-0"
+                title="Toggle Pages & Layers"
+              >
+                <Layers className="w-4 h-4 text-blue-400" />
+                <span className="hidden xs:inline text-[11px] sm:text-xs">Pages</span>
+              </button>
 
               {/* Rotate Page Button */}
               <button
                 onClick={() => handleRotatePage(currentPage - 1)}
-                className="p-2 rounded-lg border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-lg border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer shrink-0"
                 title="Rotate Current Page 90°"
               >
                 <RotateCw className="w-4 h-4" />
@@ -1138,10 +1188,10 @@ export const EditPdfTool: React.FC = () => {
               {/* Master Export Button */}
               <button
                 onClick={handleExportPdf}
-                className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-xs font-semibold text-white flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+                className="px-3 sm:px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-xs font-semibold text-white flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
               >
                 <Download className="w-4 h-4" />
-                Export PDF
+                <span className="hidden xs:inline">Export</span> PDF
               </button>
             </>
           )}
@@ -1150,10 +1200,10 @@ export const EditPdfTool: React.FC = () => {
 
       {/* 2. SECONDARY CONTEXTUAL FORMATTING BAR */}
       {pdfBuffer && (
-        <div className="h-10 bg-slate-950 border-b border-slate-800 px-4 flex items-center justify-between text-xs text-slate-400 overflow-x-auto gap-4 shrink-0">
-          <div className="flex items-center gap-3">
+        <div className="min-h-10 bg-slate-950 border-b border-slate-800 px-2 sm:px-4 py-1.5 flex flex-wrap sm:flex-nowrap items-center justify-between text-xs text-slate-400 gap-2 shrink-0 z-10">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap overflow-x-auto py-0.5 max-w-full">
             {/* Font Family */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-slate-500 font-mono text-[11px]">Font:</span>
               <select
                 value={selectedObject?.fontFamily || selectedFont}
@@ -1166,14 +1216,14 @@ export const EditPdfTool: React.FC = () => {
                 }}
                 className="bg-slate-900 border border-slate-800 rounded px-2 py-0.5 text-xs text-slate-200 outline-none"
               >
-                <option value="Helvetica">Helvetica (Standard)</option>
-                <option value="TimesRoman">Times Roman (Serif)</option>
-                <option value="Courier">Courier (Monospace)</option>
+                <option value="Helvetica">Helvetica</option>
+                <option value="TimesRoman">Times Roman</option>
+                <option value="Courier">Courier</option>
               </select>
             </div>
 
             {/* Font Size */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-slate-500 font-mono text-[11px]">Size:</span>
               <select
                 value={selectedObject?.fontSize || fontSize}
@@ -1195,7 +1245,7 @@ export const EditPdfTool: React.FC = () => {
             </div>
 
             {/* Bold / Italic */}
-            <div className="flex items-center bg-slate-900 border border-slate-800 rounded p-0.5">
+            <div className="flex items-center bg-slate-900 border border-slate-800 rounded p-0.5 shrink-0">
               <button
                 onClick={() => {
                   const next = !isBold;
@@ -1225,7 +1275,7 @@ export const EditPdfTool: React.FC = () => {
             </div>
 
             {/* Text Color Picker */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-slate-500 font-mono text-[11px]">Color:</span>
               <input
                 type="color"
@@ -1239,12 +1289,11 @@ export const EditPdfTool: React.FC = () => {
                 }}
                 className="w-5 h-5 rounded border border-slate-700 bg-transparent cursor-pointer"
                 title="Text / Stroke Color"
-              >
-              </input>
+              />
             </div>
 
             {/* Text Alignment */}
-            <div className="flex items-center bg-slate-900 border border-slate-800 rounded p-0.5">
+            <div className="flex items-center bg-slate-900 border border-slate-800 rounded p-0.5 shrink-0">
               <button
                 onClick={() => {
                   setTextAlign('left');
@@ -1285,7 +1334,7 @@ export const EditPdfTool: React.FC = () => {
           </div>
 
           {/* Quick Mode Status indicator */}
-          <div className="flex items-center gap-2 font-mono text-[11px] text-slate-400">
+          <div className="hidden sm:flex items-center gap-2 font-mono text-[11px] text-slate-400 shrink-0">
             <span>Mode:</span>
             <span className="font-semibold text-blue-400 uppercase tracking-wider">{activeMode}</span>
           </div>
@@ -1293,51 +1342,71 @@ export const EditPdfTool: React.FC = () => {
       )}
 
       {/* 3. MAIN WORKSPACE BODY */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* MOBILE SIDEBAR BACKDROP */}
+        {pdfBuffer && showMobileSidebar && (
+          <div
+            onClick={() => setShowMobileSidebar(false)}
+            className="fixed inset-0 bg-black/60 z-30 lg:hidden backdrop-blur-xs"
+          />
+        )}
+
         {/* LEFT SIDEBAR TABS & PANELS */}
         {pdfBuffer && (
-          <div className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
+          <div
+            className={`fixed inset-y-0 left-0 z-40 w-72 bg-slate-900 border-r border-slate-800 flex flex-col transition-transform duration-200 lg:static lg:w-64 lg:translate-x-0 ${
+              showMobileSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+            }`}
+          >
             {/* Sidebar Navigation Tabs */}
-            <div className="flex items-center border-b border-slate-800 bg-slate-950 p-1">
+            <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950 p-1">
+              <div className="flex items-center flex-1">
+                <button
+                  onClick={() => setActiveSidebarTab('pages')}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    activeSidebarTab === 'pages' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Pages
+                </button>
+                <button
+                  onClick={() => setActiveSidebarTab('layers')}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    activeSidebarTab === 'layers' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Layers
+                </button>
+                <button
+                  onClick={() => setActiveSidebarTab('search')}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    activeSidebarTab === 'search' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Search
+                </button>
+                <button
+                  onClick={() => setActiveSidebarTab('watermark')}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    activeSidebarTab === 'watermark' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Stamp
+                </button>
+                <button
+                  onClick={() => setActiveSidebarTab('metadata')}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    activeSidebarTab === 'metadata' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Meta
+                </button>
+              </div>
               <button
-                onClick={() => setActiveSidebarTab('pages')}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                  activeSidebarTab === 'pages' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'
-                }`}
+                onClick={() => setShowMobileSidebar(false)}
+                className="lg:hidden p-1 text-slate-400 hover:text-white"
               >
-                Pages
-              </button>
-              <button
-                onClick={() => setActiveSidebarTab('layers')}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                  activeSidebarTab === 'layers' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Layers
-              </button>
-              <button
-                onClick={() => setActiveSidebarTab('search')}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                  activeSidebarTab === 'search' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Search
-              </button>
-              <button
-                onClick={() => setActiveSidebarTab('watermark')}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                  activeSidebarTab === 'watermark' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Stamp
-              </button>
-              <button
-                onClick={() => setActiveSidebarTab('metadata')}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                  activeSidebarTab === 'metadata' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Meta
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -1715,7 +1784,10 @@ export const EditPdfTool: React.FC = () => {
         )}
 
         {/* CENTER: INTERACTIVE CANVAS STAGE */}
-        <div className="flex-1 bg-slate-950 p-6 overflow-auto flex items-center justify-center relative">
+        <div
+          ref={stageContainerRef}
+          className="flex-1 bg-slate-950 p-4 sm:p-8 overflow-x-auto overflow-y-auto relative"
+        >
           {isLoadingPdf && (
             <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs z-50 flex flex-col items-center justify-center gap-3">
               <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -1736,48 +1808,51 @@ export const EditPdfTool: React.FC = () => {
           )}
 
           {!pdfBuffer ? (
-            <div
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (e.dataTransfer.files?.[0]) loadPdf(e.dataTransfer.files[0]);
-              }}
-              className="max-w-lg w-full border-2 border-dashed border-slate-800 hover:border-blue-500/60 rounded-2xl p-10 text-center bg-slate-900/60 transition-all space-y-5 shadow-2xl"
-            >
-              <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto shadow-inner">
-                <FileText className="w-8 h-8" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white tracking-tight">Full-Featured PDF Workspace</h3>
-                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                  Direct text editing, annotations, digital signatures, vector highlighter, shapes, redaction, search & replace, page reordering, and watermarks in your browser.
-                </p>
-              </div>
+            <div className="min-h-full min-w-full flex items-center justify-center">
+              <div
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (e.dataTransfer.files?.[0]) loadPdf(e.dataTransfer.files[0]);
+                }}
+                className="max-w-lg w-full border-2 border-dashed border-slate-800 hover:border-blue-500/60 rounded-2xl p-10 text-center bg-slate-900/60 transition-all space-y-5 shadow-2xl"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto shadow-inner">
+                  <FileText className="w-8 h-8" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white tracking-tight">Full-Featured PDF Workspace</h3>
+                  <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                    Direct text editing, annotations, digital signatures, vector highlighter, shapes, redaction, search & replace, page reordering, and watermarks in your browser.
+                  </p>
+                </div>
 
-              <div className="flex items-center justify-center gap-3 pt-2">
-                <label
-                  htmlFor="pdf-file-picker"
-                  className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-sm font-semibold text-white cursor-pointer shadow-lg transition-all"
-                >
-                  Choose PDF File
-                </label>
-                <button
-                  onClick={handleLoadSample}
-                  className="px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-medium text-slate-200 border border-slate-700 transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  Load Sample PDF
-                </button>
+                <div className="flex items-center justify-center gap-3 pt-2">
+                  <label
+                    htmlFor="pdf-file-picker"
+                    className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-sm font-semibold text-white cursor-pointer shadow-lg transition-all"
+                  >
+                    Choose PDF File
+                  </label>
+                  <button
+                    onClick={handleLoadSample}
+                    className="px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-medium text-slate-200 border border-slate-700 transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    Load Sample PDF
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
-            <div
-              className="relative shadow-2xl rounded-lg bg-white overflow-hidden select-none"
-              style={{
-                width: `${stageWidth}px`,
-                height: `${stageHeight}px`,
-              }}
-            >
+            <div className="min-h-full min-w-full flex flex-col items-center justify-start py-2 sm:py-4">
+              <div
+                className="relative shadow-2xl rounded-lg bg-white overflow-hidden select-none my-2 sm:my-4 shrink-0"
+                style={{
+                  width: `${stageWidth}px`,
+                  height: `${stageHeight}px`,
+                }}
+              >
               {/* Layer 1: Native PDF.js Canvas Layer */}
               <canvas ref={canvasRef} className="block absolute top-0 left-0 pointer-events-none" />
 
@@ -2118,9 +2193,10 @@ export const EditPdfTool: React.FC = () => {
                 )}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+    </div>
 
       {/* 4. DIGITAL SIGNATURE STUDIO MODAL */}
       {showSigModal && (

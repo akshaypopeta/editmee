@@ -50,6 +50,7 @@ export interface ToolInputField {
   max?: number;
   step?: number;
   accept?: string;
+  multiple?: boolean;
   description?: string;
 }
 

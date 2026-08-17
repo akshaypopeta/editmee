@@ -763,6 +763,12 @@ export default function App() {
                         { id: 'business', label: 'Business' },
                         { id: 'calculators', label: 'Calculators' },
                         { id: 'security', label: 'Security' },
+                        { id: 'files', label: 'File Conversion' },
+                        { id: 'media', label: 'Media & Audio' },
+                        { id: 'design', label: 'Design' },
+                        { id: 'marketing', label: 'Marketing' },
+                        { id: 'automation', label: 'Automation' },
+                        { id: 'productivity', label: 'Productivity' },
                       ].map((cat) => (
                         <button
                           key={cat.id}
