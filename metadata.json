@@ -1,0 +1,6 @@
+{
+  "name": "EditMee",
+  "description": "Universal digital-work platform with client-first PDF editing, image studio, document & resume builders, data analytics, developer utilities, calculators, visual workflow automation, and EditMee AI intelligence.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

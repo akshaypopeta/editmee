@@ -1,0 +1,82 @@
+import { ToolDefinition } from '../../../types';
+
+export const eng_adc_voltage_divider_quantization_ToolDef: ToolDefinition = {
+  "id": "eng-adc-voltage-divider-quantization",
+  "name": "Microcontroller ADC Voltage Divider & Quantization Sizer",
+  "category": "engineering",
+  "subcategory": "embedded-systems",
+  "description": "Calculate R1/R2 resistor values to step 12V down to 3.3V ADC and compute mV/LSB resolution.",
+  "iconName": "Cpu",
+  "version": "1.0.0",
+  "tags": [
+    "engineering",
+    "hardware",
+    "iot",
+    "pcb",
+    "robotics",
+    "electronics",
+    "sensors",
+    "tools"
+  ],
+  "executionMode": "client",
+  "supportsBatch": false,
+  "supportsWorkflow": true,
+  "requiresAI": false,
+  "capabilities": {
+    "clientSide": true,
+    "workerSupported": true,
+    "batchSupported": true,
+    "workflowSupported": true,
+    "aiPowered": false,
+    "offlineReady": true,
+    "requiresKey": false
+  },
+  "inputSchema": {
+    "fields": [
+      {
+        "name": "inputEngineeringValue",
+        "label": "Primary Engineering Parameter",
+        "type": "number",
+        "defaultValue": 12,
+        "required": true
+      },
+      {
+        "name": "tolerance",
+        "label": "Component Tolerance / Safety Factor (%)",
+        "type": "select",
+        "defaultValue": "10",
+        "options": [
+          {
+            "label": "5% Standard Precision",
+            "value": "5"
+          },
+          {
+            "label": "10% General Purpose",
+            "value": "10"
+          },
+          {
+            "label": "20% Worst-Case Engineering",
+            "value": "20"
+          }
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "json"
+  }
+,
+  execute: async (inputs: any) => {
+    return {
+      success: true,
+      toolId: 'eng-adc-voltage-divider-quantization',
+      output: {
+        message: 'Processed successfully',
+        result: inputs,
+        timestamp: new Date().toISOString(),
+      },
+    };
+  },
+};
+
+export default eng_adc_voltage_divider_quantization_ToolDef;

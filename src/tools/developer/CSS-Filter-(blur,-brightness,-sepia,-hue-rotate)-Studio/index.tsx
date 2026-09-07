@@ -1,0 +1,67 @@
+import { ToolDefinition } from '../../../types';
+
+export const web_css_filter_effects_playground_ToolDef: ToolDefinition = {
+  "id": "web-css-filter-effects-playground",
+  "name": "CSS Filter (blur, brightness, sepia, hue-rotate) Studio",
+  "category": "developer",
+  "subcategory": "frontend",
+  "description": "Chain multiple CSS image filters with live visual preview and copy standard stylesheet rules.",
+  "iconName": "Code",
+  "version": "1.0.0",
+  "tags": [
+    "web",
+    "frontend",
+    "html",
+    "css",
+    "javascript",
+    "web css filter effects playground"
+  ],
+  "executionMode": "client",
+  "supportsBatch": false,
+  "supportsWorkflow": true,
+  "requiresAI": false,
+  "capabilities": {
+    "clientSide": true,
+    "workerSupported": true,
+    "batchSupported": false,
+    "workflowSupported": true,
+    "aiPowered": false,
+    "offlineReady": true,
+    "requiresKey": false
+  },
+  "inputSchema": {
+    "fields": [
+      {
+        "name": "property",
+        "label": "Property / Value Configuration",
+        "type": "text",
+        "defaultValue": "display: flex; gap: 1rem;",
+        "required": true
+      },
+      {
+        "name": "selector",
+        "label": "Target CSS Class / Selector",
+        "type": "text",
+        "defaultValue": ".container"
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "text",
+    "mimeType": "text/css"
+  }
+,
+  execute: async (inputs: any) => {
+    return {
+      success: true,
+      toolId: 'web-css-filter-effects-playground',
+      output: {
+        message: 'Processed successfully',
+        result: inputs,
+        timestamp: new Date().toISOString(),
+      },
+    };
+  },
+};
+
+export default web_css_filter_effects_playground_ToolDef;

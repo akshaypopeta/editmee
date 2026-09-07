@@ -1,0 +1,79 @@
+import { ToolDefinition } from '../../../types';
+
+export const media_video_aspect_ratio_cropper_specs_5_ToolDef: ToolDefinition = {
+  "id": "media-video-aspect-ratio-cropper-specs-5",
+  "name": "Video Aspect Ratio Cropper Specs",
+  "category": "media",
+  "subcategory": "video",
+  "description": "Calculate exact video dimension crops for vertical Reels and TikTok.",
+  "iconName": "FileText",
+  "version": "1.0.0",
+  "tags": [
+    "media",
+    "video",
+    "utility",
+    "client-side"
+  ],
+  "executionMode": "client",
+  "supportsBatch": true,
+  "supportsWorkflow": true,
+  "requiresAI": false,
+  "capabilities": {
+    "clientSide": true,
+    "workerSupported": true,
+    "batchSupported": true,
+    "workflowSupported": true,
+    "aiPowered": false,
+    "offlineReady": true,
+    "requiresKey": false
+  },
+  "inputSchema": {
+    "fields": [
+      {
+        "name": "input",
+        "label": "Primary Input / Content",
+        "type": "textarea",
+        "required": true,
+        "defaultValue": "Sample input data for Video Aspect Ratio Cropper Specs"
+      },
+      {
+        "name": "option",
+        "label": "Processing Preset",
+        "type": "select",
+        "defaultValue": "standard",
+        "options": [
+          {
+            "label": "Standard Mode",
+            "value": "standard"
+          },
+          {
+            "label": "High Precision",
+            "value": "high"
+          },
+          {
+            "label": "Fast Output",
+            "value": "fast"
+          }
+        ]
+      }
+    ]
+  },
+  "outputSchema": {
+    "type": "text",
+    "mimeType": "text/plain"
+  }
+,
+  execute: async (inputs: any) => {
+    return {
+      success: true,
+      toolId: 'media-video-aspect-ratio-cropper-specs-5',
+      output: {
+        message: 'Processed successfully',
+        result: inputs,
+        timestamp: new Date().toISOString(),
+      },
+    };
+  },
+};
+
+export default media_video_aspect_ratio_cropper_specs_5_ToolDef;

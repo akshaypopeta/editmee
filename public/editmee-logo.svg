@@ -1,0 +1,75 @@
+<svg viewBox="0 0 540 190" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ground Shadow -->
+  <ellipse cx="105" cy="180" rx="72" ry="7" fill="#E2E8F0" opacity="0.85" />
+
+  <!-- Mascot Body -->
+  <g>
+    <!-- Paper Path with folded corner -->
+    <path
+      d="M 52 28 C 52 14, 60 6, 74 6 L 132 6 L 168 42 L 168 154 C 168 168, 158 176, 144 176 L 74 176 C 60 176, 52 168, 52 154 Z"
+      fill="#FFFFFF"
+      stroke="#1E293B"
+      stroke-width="6"
+      stroke-linejoin="round"
+    />
+
+    <!-- Folded Corner -->
+    <path
+      d="M 132 6 L 132 36 C 132 41, 135 44, 140 44 L 168 42 Z"
+      fill="#EF4444"
+      stroke="#1E293B"
+      stroke-width="5"
+      stroke-linejoin="round"
+    />
+
+    <!-- Red PDF Badge -->
+    <rect x="38" y="20" width="48" height="28" rx="6" fill="#EF4444" stroke="#1E293B" stroke-width="4.5" />
+    <text x="62" y="40" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="14" text-anchor="middle" letter-spacing="0.5">PDF</text>
+
+    <!-- Eyebrows -->
+    <path d="M 82 67 C 86 64, 92 64, 96 67" stroke="#1E293B" stroke-width="3.5" stroke-linecap="round" />
+    <path d="M 122 67 C 126 64, 132 64, 136 67" stroke="#1E293B" stroke-width="3.5" stroke-linecap="round" />
+
+    <!-- Cute Eyes with Glint -->
+    <ellipse cx="89" cy="80" rx="6.5" ry="9" fill="#1E293B" />
+    <circle cx="87" cy="76" r="2.8" fill="#FFFFFF" />
+    <ellipse cx="129" cy="80" rx="6.5" ry="9" fill="#1E293B" />
+    <circle cx="127" cy="76" r="2.8" fill="#FFFFFF" />
+
+    <!-- Open Smile -->
+    <path d="M 98 92 C 98 105, 120 105, 120 92 Z" fill="#EF4444" stroke="#1E293B" stroke-width="3.5" stroke-linejoin="round" />
+    <path d="M 103 100 C 105 95, 113 95, 115 100" fill="#FDA4AF" />
+
+    <!-- "EDIT ME!" Speech Bubble -->
+    <path
+      d="M 80 114 C 74 114, 70 118, 70 124 L 70 148 C 70 154, 74 158, 80 158 L 128 158 C 134 158, 138 154, 138 148 L 138 140 L 148 134 L 138 130 L 138 124 C 138 118, 134 114, 128 114 Z"
+      fill="#FFFFFF"
+      stroke="#1E293B"
+      stroke-width="4"
+      stroke-linejoin="round"
+    />
+    <text x="104" y="133" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="13" text-anchor="middle" letter-spacing="0.2">EDIT</text>
+    <text x="104" y="151" fill="#EF4444" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="15" text-anchor="middle" letter-spacing="0.5">ME!</text>
+
+    <!-- Pointing Left Hand -->
+    <path d="M 52 100 C 36 104, 28 117, 34 128 C 36 132, 42 132, 48 126" stroke="#1E293B" stroke-width="5" fill="none" stroke-linecap="round" />
+    <circle cx="48" cy="130" r="8" fill="#FFFFFF" stroke="#1E293B" stroke-width="4" />
+    <path d="M 54 130 L 70 131" stroke="#1E293B" stroke-width="5.5" stroke-linecap="round" />
+
+    <!-- Pencil & Right Hand -->
+    <g transform="rotate(18 170 102)">
+      <rect x="162" y="34" width="16" height="12" rx="3" fill="#FDA4AF" stroke="#1E293B" stroke-width="3.5" />
+      <rect x="162" y="46" width="16" height="6" fill="#94A3B8" stroke="#1E293B" stroke-width="3" />
+      <rect x="162" y="52" width="16" height="62" fill="#EF4444" stroke="#1E293B" stroke-width="4" />
+      <line x1="170" y1="52" x2="170" y2="114" stroke="#B91C1C" stroke-width="2.5" />
+      <polygon points="162,114 178,114 170,130" fill="#FED7AA" stroke="#1E293B" stroke-width="3.5" />
+      <polygon points="167,124 173,124 170,130" fill="#1E293B" />
+    </g>
+    <circle cx="160" cy="114" r="9" fill="#FFFFFF" stroke="#1E293B" stroke-width="4" />
+  </g>
+
+  <!-- Brand Text "editmee" -->
+  <text x="210" y="136" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="96" letter-spacing="-3">
+    <tspan fill="#182230">edit</tspan><tspan fill="#EF4444">mee</tspan>
+  </text>
+</svg>
