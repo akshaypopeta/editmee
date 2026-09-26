@@ -3,6 +3,7 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
+import { auditWebsiteReal } from './src/server/seoAuditService';
 
 dotenv.config();
 
@@ -91,10 +92,21 @@ async function generateContentWithRetry(params: {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+  // Technical SEO endpoints
+  app.get('/robots.txt', (req, res) => {
+    const robotsPath = path.join(process.cwd(), 'public', 'robots.txt');
+    res.type('text/plain; charset=utf-8').sendFile(robotsPath);
+  });
+
+  app.get('/sitemap.xml', (req, res) => {
+    const sitemapPath = path.join(process.cwd(), 'public', 'sitemap.xml');
+    res.type('application/xml; charset=utf-8').sendFile(sitemapPath);
+  });
 
   // Health check
   app.get('/api/health', (req, res) => {
@@ -104,6 +116,28 @@ async function startServer() {
       time: new Date().toISOString(),
       hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
     });
+  });
+
+  // SEO & Marketing Studio Pro - Real Website Auditor & Crawler endpoint
+  app.post('/api/seo/audit', async (req, res) => {
+    try {
+      const { url, maxPages = 3 } = req.body;
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ success: false, error: 'A valid website URL is required.' });
+      }
+
+      const result = await auditWebsiteReal(url, Number(maxPages) || 3);
+      return res.json({
+        success: true,
+        audit: result,
+      });
+    } catch (err: any) {
+      console.error('SEO Audit Backend Error:', err);
+      return res.status(500).json({
+        success: false,
+        error: err.message || 'Failed to audit website. Site may be unreachable or rejecting connections.',
+      });
+    }
   });
 
   // AI Chat & Work Assistant endpoint (Gemini 3.7 Flash)
@@ -478,8 +512,36 @@ function generateProceduralGraphic(prompt: string, aspectRatio: string = '1:1', 
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+
+    // Hashed production assets: cache immutably for 1 year
+    app.use(
+      '/assets',
+      express.static(path.join(distPath, 'assets'), {
+        maxAge: '1y',
+        immutable: true,
+      })
+    );
+
+    // If an asset in /assets/ is missing (e.g. stale cache requesting old chunk), return 404, NOT index.html!
+    app.get('/assets/*', (req, res) => {
+      res.status(404).type('text/plain').send('Asset chunk not found');
+    });
+
+    // Root static assets (favicon, manifest, robots, sitemap, etc.)
+    app.use(
+      express.static(distPath, {
+        index: false,
+        maxAge: '1h',
+      })
+    );
+
+    // SPA entry point: never cache index.html so users always receive latest chunk references
     app.get('*', (req, res) => {
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      });
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

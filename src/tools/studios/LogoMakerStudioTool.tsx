@@ -1,1079 +1,1162 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { ToolDefinition } from '../../types';
-import {
-  Layers,
-  Type,
-  Square,
-  Circle,
-  Star,
-  Shield,
-  Download,
-  Upload,
-  Plus,
-  Trash2,
-  Copy,
-  Eye,
-  EyeOff,
-  Lock,
-  Unlock,
-  RotateCcw,
-  Sparkles,
-  Palette,
-  Sliders,
-  Maximize2,
-  ZoomIn,
-  ZoomOut,
-  Grid,
-  Move,
-  FileCode,
-  Check,
-  Shapes,
-} from 'lucide-react';
 import { storageEngine } from '../../core/storage-engine/StorageEngine';
+import {
+  LogoElement,
+  CanvasDimensions,
+  BrandKit,
+  HistorySnapshot,
+  AlignmentGuide,
+  ShapeType,
+} from './logo-maker/types';
+import { LOGO_TEMPLATES, LogoTemplateItem } from './logo-maker/templates';
+import { LOGO_ICONS, LogoIconItem } from './logo-maker/iconLibrary';
+import { LOGO_PALETTES } from './logo-maker/palettes';
+import { generateVectorSvg } from './logo-maker/svgExporter';
+import { generateBrandAuditReport } from './logo-maker/designAdvisor';
+import {
+  exportVectorAsPdf,
+  createLogoVariation,
+  parseImportedSvg,
+} from './logo-maker/exportUtils';
 
-interface LogoElement {
-  id: string;
-  type: 'text' | 'shape' | 'icon';
-  name: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotation: number;
-  opacity: number;
-  locked: boolean;
-  visible: boolean;
-  // Text specific
-  text?: string;
-  fontFamily?: string;
-  fontSize?: number;
-  fontWeight?: string;
-  letterSpacing?: number;
-  isCurved?: boolean;
-  color?: string;
-  strokeColor?: string;
-  strokeWidth?: number;
-  // Shape specific
-  shapeType?: 'rect' | 'circle' | 'star' | 'shield' | 'hexagon' | 'triangle';
-  fillColor?: string;
-  borderRadius?: number;
-  // Icon specific
-  iconName?: string;
-}
+// Modular Subcomponents
+import { TopBar } from './logo-maker/TopBar';
+import { LeftSidebar, ActiveToolTab } from './logo-maker/LeftSidebar';
+import { CanvasWorkspace } from './logo-maker/CanvasWorkspace';
+import { RightInspector } from './logo-maker/RightInspector';
+import { MobileDock } from './logo-maker/MobileDock';
+import { CanvasPresetModal } from './logo-maker/CanvasPresetModal';
+import { BrandKitModal } from './logo-maker/BrandKitModal';
+import { BrandAuditModal } from './logo-maker/BrandAuditModal';
+import { VariationsModal } from './logo-maker/VariationsModal';
+import { PreviewModal } from './logo-maker/PreviewModal';
+import { MobileTextEditorModal } from './logo-maker/MobileTextEditorModal';
+import { MobileObjectBar } from './logo-maker/MobileObjectBar';
+import { MobileQuickAdd } from './logo-maker/MobileQuickAdd';
+import { ExportCenterModal } from './logo-maker/ExportCenterModal';
 
 export const LogoMakerStudioWorkspace: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 800 });
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Project Settings & Geometry
+  const [projectName, setProjectName] = useState('My-Brand-Logo');
+  const [canvasSize, setCanvasSize] = useState<CanvasDimensions>({ width: 800, height: 800 });
   const [bgType, setBgType] = useState<'transparent' | 'solid' | 'gradient'>('transparent');
   const [bgColor, setBgColor] = useState('#ffffff');
   const [gradientStart, setGradientStart] = useState('#0f172a');
   const [gradientEnd, setGradientEnd] = useState('#1e293b');
-  const [showGrid, setShowGrid] = useState(true);
-  const [zoom, setZoom] = useState(1);
+  const [gradientAngle, setGradientAngle] = useState(45);
 
+  // Viewport Settings
+  const [zoom, setZoom] = useState(1.0);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanMode, setIsPanMode] = useState(false);
+  const [showGrid, setShowGrid] = useState(true);
+  const [showRulers, setShowRulers] = useState(false);
+  const [showSafeArea, setShowSafeArea] = useState(true);
+  const [enableSnapping, setEnableSnapping] = useState(true);
+  const [activeGuides, setActiveGuides] = useState<AlignmentGuide[]>([]);
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
+
+  // UI Panels state
+  const [leftTab, setLeftTab] = useState<ActiveToolTab>('templates');
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+
+  // Modal Open states
+  const [presetModalOpen, setPresetModalOpen] = useState(false);
+  const [brandKitModalOpen, setBrandKitModalOpen] = useState(false);
+  const [auditModalOpen, setAuditModalOpen] = useState(false);
+  const [variationsModalOpen, setVariationsModalOpen] = useState(false);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [mobileTextEditorOpen, setMobileTextEditorOpen] = useState(false);
+  const [exportCenterOpen, setExportCenterOpen] = useState(false);
+
+  // Brand Kit State
+  const [brandKit, setBrandKit] = useState<BrandKit>({
+    brandName: 'EDITMEE',
+    tagline: 'STUDIO PRO',
+    industry: 'Technology & Design',
+    personality: 'Modern, Premium, Geometric',
+    primaryColor: '#1e3a8a',
+    secondaryColor: '#3b82f6',
+    accentColor: '#eab308',
+    fontHeading: 'Outfit, sans-serif',
+    fontBody: 'Inter, sans-serif',
+  });
+
+  // Initial Elements
   const [elements, setElements] = useState<LogoElement[]>([
     {
-      id: 'el-badge',
-      type: 'shape',
+      id: 'el-shield-frame',
       name: 'Badge Shield',
+      type: 'shape',
       shapeType: 'shield',
       x: 400,
-      y: 350,
+      y: 330,
       width: 240,
-      height: 280,
+      height: 270,
       rotation: 0,
       opacity: 1,
       locked: false,
       visible: true,
-      fillColor: '#ef4444',
-      strokeColor: '#b91c1c',
-      strokeWidth: 4,
+      fillType: 'linear',
+      gradient: { type: 'linear', startColor: '#1e3a8a', endColor: '#3b82f6', angle: 45 },
+      stroke: { color: '#eab308', width: 4 },
+      shadow: { color: 'rgba(0,0,0,0.15)', blur: 12, offsetX: 0, offsetY: 6 },
+    },
+    {
+      id: 'el-crown-symbol',
+      name: 'Crown Symbol',
+      type: 'icon',
+      iconName: 'Royal Crown',
+      iconCategory: 'Business',
+      svgPath: 'M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 14h14v2H5v-2z',
+      viewBox: '0 0 24 24',
+      x: 400,
+      y: 320,
+      width: 100,
+      height: 100,
+      rotation: 0,
+      opacity: 1,
+      locked: false,
+      visible: true,
+      fillColor: '#eab308',
     },
     {
       id: 'el-brand-title',
-      type: 'text',
       name: 'Brand Title',
+      type: 'text',
       text: 'EDITMEE',
-      fontFamily: 'Inter, sans-serif',
-      fontSize: 54,
+      fontFamily: 'Outfit, sans-serif',
+      fontSize: 56,
       fontWeight: '900',
       letterSpacing: 6,
-      color: '#ffffff',
-      strokeColor: '#000000',
-      strokeWidth: 0,
+      uppercase: true,
+      textAlign: 'center',
       x: 400,
-      y: 350,
-      width: 300,
-      height: 60,
+      y: 530,
+      width: 380,
+      height: 65,
       rotation: 0,
       opacity: 1,
       locked: false,
       visible: true,
+      fillColor: '#0f172a',
     },
     {
       id: 'el-tagline',
-      type: 'text',
       name: 'Tagline',
+      type: 'text',
       text: 'STUDIO PRO',
-      fontFamily: 'monospace',
-      fontSize: 20,
-      fontWeight: '700',
-      letterSpacing: 8,
-      color: '#fca5a5',
-      strokeColor: '#000000',
-      strokeWidth: 0,
+      fontFamily: 'Inter, sans-serif',
+      fontSize: 16,
+      fontWeight: '800',
+      letterSpacing: 6,
+      uppercase: true,
+      textAlign: 'center',
       x: 400,
-      y: 410,
-      width: 250,
+      y: 585,
+      width: 300,
       height: 30,
       rotation: 0,
-      opacity: 1,
+      opacity: 0.85,
       locked: false,
       visible: true,
+      fillColor: '#3b82f6',
     },
   ]);
 
-  const [selectedId, setSelectedId] = useState<string | null>('el-brand-title');
-  const [activeTab, setActiveTab] = useState<'text' | 'shapes' | 'canvas' | 'layers'>('text');
-  const [isExporting, setIsExporting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>(['el-brand-title']);
+  const [clipboard, setClipboard] = useState<LogoElement[] | null>(null);
 
-  const selectedElement = elements.find((el) => el.id === selectedId);
+  // Undo / Redo History
+  const [history, setHistory] = useState<HistorySnapshot[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
 
-  // Update selected element helper
-  const updateSelected = (updates: Partial<LogoElement>) => {
-    if (!selectedId) return;
-    setElements((prev) =>
-      prev.map((el) => (el.id === selectedId ? { ...el, ...updates } : el))
-    );
-  };
+  const pushHistory = useCallback(
+    (newElements: LogoElement[]) => {
+      const snapshot: HistorySnapshot = {
+        elements: JSON.parse(JSON.stringify(newElements)),
+        canvasSize: { ...canvasSize },
+        bgType,
+        bgColor,
+        gradientStart,
+        gradientEnd,
+        gradientAngle,
+      };
+
+      setHistory((prev) => {
+        const sliced = prev.slice(0, historyIndex + 1);
+        const next = [...sliced, snapshot];
+        if (next.length > 40) next.shift();
+        return next;
+      });
+      setHistoryIndex((prev) => Math.min(prev + 1, 39));
+    },
+    [canvasSize, bgType, bgColor, gradientStart, gradientEnd, gradientAngle, historyIndex]
+  );
+
+  // Initial history snapshot
+  useEffect(() => {
+    if (history.length === 0) {
+      const initialSnapshot: HistorySnapshot = {
+        elements: JSON.parse(JSON.stringify(elements)),
+        canvasSize: { ...canvasSize },
+        bgType,
+        bgColor,
+        gradientStart,
+        gradientEnd,
+        gradientAngle,
+      };
+      setHistory([initialSnapshot]);
+      setHistoryIndex(0);
+    }
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (historyIndex > 0) {
+      const targetIndex = historyIndex - 1;
+      const snapshot = history[targetIndex];
+      setElements(JSON.parse(JSON.stringify(snapshot.elements)));
+      setCanvasSize({ ...snapshot.canvasSize });
+      setBgType(snapshot.bgType);
+      setBgColor(snapshot.bgColor);
+      if (snapshot.gradientStart) setGradientStart(snapshot.gradientStart);
+      if (snapshot.gradientEnd) setGradientEnd(snapshot.gradientEnd);
+      if (snapshot.gradientAngle !== undefined) setGradientAngle(snapshot.gradientAngle);
+      setHistoryIndex(targetIndex);
+    }
+  }, [historyIndex, history]);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const targetIndex = historyIndex + 1;
+      const snapshot = history[targetIndex];
+      setElements(JSON.parse(JSON.stringify(snapshot.elements)));
+      setCanvasSize({ ...snapshot.canvasSize });
+      setBgType(snapshot.bgType);
+      setBgColor(snapshot.bgColor);
+      if (snapshot.gradientStart) setGradientStart(snapshot.gradientStart);
+      if (snapshot.gradientEnd) setGradientEnd(snapshot.gradientEnd);
+      if (snapshot.gradientAngle !== undefined) setGradientAngle(snapshot.gradientAngle);
+      setHistoryIndex(targetIndex);
+    }
+  }, [historyIndex, history]);
+
+  const handleFitCanvas = useCallback(() => {
+    setZoom(1.0);
+    setPanOffset({ x: 0, y: 0 });
+  }, []);
+
+  // Selected element convenience accessor
+  const primarySelected = useMemo(() => {
+    if (selectedIds.length === 0) return null;
+    return elements.find((el) => el.id === selectedIds[0]) || null;
+  }, [selectedIds, elements]);
+
+  // Real-time Brand Audit score
+  const auditReport = useMemo(() => {
+    return generateBrandAuditReport(elements, canvasSize, bgType, bgColor, brandKit);
+  }, [elements, canvasSize, bgType, bgColor, brandKit]);
+
+  // Element Updates
+  const updateSelected = useCallback(
+    (updates: Partial<LogoElement>) => {
+      if (selectedIds.length === 0) return;
+      setElements((prev) => {
+        const next = prev.map((el) => (selectedIds.includes(el.id) ? { ...el, ...updates } : el));
+        return next;
+      });
+    },
+    [selectedIds]
+  );
+
+  const updateElementById = useCallback((id: string, updates: Partial<LogoElement>) => {
+    setElements((prev) => prev.map((el) => (el.id === id ? { ...el, ...updates } : el)));
+  }, []);
+
+  const updateElementsBatch = useCallback(
+    (updates: { id: string; changes: Partial<LogoElement> }[]) => {
+      setElements((prev) => {
+        const map = new Map(updates.map((u) => [u.id, u.changes]));
+        return prev.map((el) => (map.has(el.id) ? { ...el, ...map.get(el.id) } : el));
+      });
+    },
+    []
+  );
+
+  const handleCommitHistory = useCallback(() => {
+    pushHistory(elements);
+  }, [elements, pushHistory]);
+
+  // Actions
+  const deleteSelected = useCallback(() => {
+    if (selectedIds.length === 0) return;
+    setElements((prev) => {
+      const next = prev.filter((el) => !selectedIds.includes(el.id));
+      pushHistory(next);
+      return next;
+    });
+    setSelectedIds([]);
+  }, [selectedIds, pushHistory]);
+
+  const duplicateSelected = useCallback(() => {
+    if (selectedIds.length === 0) return;
+    const toDuplicate = elements.filter((el) => selectedIds.includes(el.id));
+    const newElements: LogoElement[] = toDuplicate.map((el) => ({
+      ...JSON.parse(JSON.stringify(el)),
+      id: `${el.type}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      name: `${el.name} (Copy)`,
+      x: el.x + 25,
+      y: el.y + 25,
+    }));
+
+    setElements((prev) => {
+      const next = [...prev, ...newElements];
+      pushHistory(next);
+      return next;
+    });
+    setSelectedIds(newElements.map((el) => el.id));
+  }, [selectedIds, elements, pushHistory]);
+
+  const alignSelected = useCallback(
+    (type: 'left' | 'center-h' | 'right' | 'top' | 'center-v' | 'bottom') => {
+      if (selectedIds.length === 0) return;
+      const canvasCenterX = canvasSize.width / 2;
+      const canvasCenterY = canvasSize.height / 2;
+
+      setElements((prev) => {
+        const next = prev.map((el) => {
+          if (!selectedIds.includes(el.id)) return el;
+          const hw = el.width / 2;
+          const hh = el.height / 2;
+
+          switch (type) {
+            case 'left':
+              return { ...el, x: hw + 20 };
+            case 'center-h':
+              return { ...el, x: canvasCenterX };
+            case 'right':
+              return { ...el, x: canvasSize.width - hw - 20 };
+            case 'top':
+              return { ...el, y: hh + 20 };
+            case 'center-v':
+              return { ...el, y: canvasCenterY };
+            case 'bottom':
+              return { ...el, y: canvasSize.height - hh - 20 };
+            default:
+              return el;
+          }
+        });
+        pushHistory(next);
+        return next;
+      });
+    },
+    [selectedIds, canvasSize, pushHistory]
+  );
+
+  const reorderLayer = useCallback(
+    (direction: 'up' | 'down' | 'top' | 'bottom') => {
+      if (selectedIds.length === 0) return;
+      const targetId = selectedIds[0];
+      setElements((prev) => {
+        const idx = prev.findIndex((el) => el.id === targetId);
+        if (idx === -1) return prev;
+        const copy = [...prev];
+        const [removed] = copy.splice(idx, 1);
+
+        if (direction === 'up') {
+          copy.splice(Math.min(idx + 1, copy.length), 0, removed);
+        } else if (direction === 'down') {
+          copy.splice(Math.max(idx - 1, 0), 0, removed);
+        } else if (direction === 'top') {
+          copy.push(removed);
+        } else if (direction === 'bottom') {
+          copy.unshift(removed);
+        }
+        pushHistory(copy);
+        return copy;
+      });
+    },
+    [selectedIds, pushHistory]
+  );
 
   // Add Element Helpers
-  const addTextElement = () => {
-    const newEl: LogoElement = {
-      id: `text-${Date.now()}`,
-      type: 'text',
-      name: `Text ${elements.length + 1}`,
-      text: 'NEW BRAND',
-      fontFamily: 'Inter, sans-serif',
-      fontSize: 42,
-      fontWeight: '800',
-      letterSpacing: 4,
-      color: '#0f172a',
-      x: 400,
-      y: 400,
-      width: 260,
-      height: 50,
-      rotation: 0,
-      opacity: 1,
-      locked: false,
-      visible: true,
-    };
-    setElements((prev) => [...prev, newEl]);
-    setSelectedId(newEl.id);
-    setActiveTab('text');
+  const addTextElement = (type: 'title' | 'tagline' | 'curved' | 'custom') => {
+    let newEl: LogoElement;
+    const baseId = `text-${Date.now()}`;
+
+    if (type === 'title') {
+      newEl = {
+        id: baseId,
+        name: 'Brand Title',
+        type: 'text',
+        text: brandKit.brandName.toUpperCase(),
+        fontFamily: brandKit.fontHeading,
+        fontSize: 52,
+        fontWeight: '900',
+        letterSpacing: 4,
+        uppercase: true,
+        textAlign: 'center',
+        x: canvasSize.width / 2,
+        y: canvasSize.height / 2,
+        width: 360,
+        height: 60,
+        rotation: 0,
+        opacity: 1,
+        locked: false,
+        visible: true,
+        fillColor: '#0f172a',
+      };
+    } else if (type === 'curved') {
+      newEl = {
+        id: baseId,
+        name: 'Curved Text',
+        type: 'text',
+        text: 'ESTABLISHED 2026',
+        fontFamily: brandKit.fontHeading,
+        fontSize: 26,
+        fontWeight: '800',
+        letterSpacing: 5,
+        uppercase: true,
+        isCurved: true,
+        curveRadius: 160,
+        curveArc: 160,
+        curveDirection: 'convex',
+        textAlign: 'center',
+        x: canvasSize.width / 2,
+        y: canvasSize.height / 2 - 120,
+        width: 320,
+        height: 70,
+        rotation: 0,
+        opacity: 1,
+        locked: false,
+        visible: true,
+        fillColor: brandKit.secondaryColor || '#3b82f6',
+      };
+    } else {
+      newEl = {
+        id: baseId,
+        name: 'Sub-tagline',
+        type: 'text',
+        text: brandKit.tagline.toUpperCase(),
+        fontFamily: brandKit.fontBody,
+        fontSize: 16,
+        fontWeight: '700',
+        letterSpacing: 6,
+        uppercase: true,
+        textAlign: 'center',
+        x: canvasSize.width / 2,
+        y: canvasSize.height / 2 + 50,
+        width: 300,
+        height: 30,
+        rotation: 0,
+        opacity: 0.85,
+        locked: false,
+        visible: true,
+        fillColor: brandKit.secondaryColor || '#3b82f6',
+      };
+    }
+
+    setElements((prev) => {
+      const next = [...prev, newEl];
+      pushHistory(next);
+      return next;
+    });
+    setSelectedIds([newEl.id]);
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setMobileTextEditorOpen(true);
+    }
   };
 
-  const addShapeElement = (shapeType: LogoElement['shapeType']) => {
+  const addShapeElement = (shapeType: ShapeType) => {
     const newEl: LogoElement = {
       id: `shape-${Date.now()}`,
+      name: `${shapeType.toUpperCase()} Shape`,
       type: 'shape',
-      name: `${shapeType?.toUpperCase()} Shape`,
       shapeType,
-      fillColor: '#3b82f6',
-      strokeColor: '#1d4ed8',
-      strokeWidth: 2,
-      borderRadius: 16,
-      x: 400,
-      y: 400,
+      x: canvasSize.width / 2,
+      y: canvasSize.height / 2,
       width: 180,
       height: 180,
       rotation: 0,
       opacity: 1,
       locked: false,
       visible: true,
+      fillType: 'solid',
+      fillColor: brandKit.primaryColor || '#1e3a8a',
+      borderRadius: shapeType === 'rounded-rect' ? 24 : 12,
+      stroke: { color: brandKit.accentColor || '#eab308', width: 0 },
     };
-    setElements((prev) => [...prev, newEl]);
-    setSelectedId(newEl.id);
-    setActiveTab('shapes');
+
+    setElements((prev) => {
+      const next = [...prev, newEl];
+      pushHistory(next);
+      return next;
+    });
+    setSelectedIds([newEl.id]);
   };
 
-  // Render Canvas
+  const addIconElement = (icon: LogoIconItem) => {
+    const newEl: LogoElement = {
+      id: `icon-${Date.now()}`,
+      name: icon.name,
+      type: 'icon',
+      iconName: icon.name,
+      iconCategory: icon.category,
+      svgPath: icon.path,
+      viewBox: icon.viewBox,
+      x: canvasSize.width / 2,
+      y: canvasSize.height / 2 - 40,
+      width: 120,
+      height: 120,
+      rotation: 0,
+      opacity: 1,
+      locked: false,
+      visible: true,
+      fillColor: brandKit.accentColor || '#eab308',
+    };
+
+    setElements((prev) => {
+      const next = [...prev, newEl];
+      pushHistory(next);
+      return next;
+    });
+    setSelectedIds([newEl.id]);
+  };
+
+  const applyTemplate = (template: LogoTemplateItem) => {
+    setCanvasSize(template.canvasSize);
+    setBgType(template.bgType);
+    setBgColor(template.bgColor);
+    if (template.gradientStart) setGradientStart(template.gradientStart);
+    if (template.gradientEnd) setGradientEnd(template.gradientEnd);
+    const cloned = JSON.parse(JSON.stringify(template.elements));
+    setElements(cloned);
+    pushHistory(cloned);
+    if (cloned.length > 0) {
+      setSelectedIds([cloned[cloned.length - 1].id]);
+    }
+  };
+
+  const applyPaletteToLogo = (palette: (typeof LOGO_PALETTES)[0]) => {
+    setElements((prev) => {
+      const next = prev.map((el) => {
+        if (el.type === 'text') {
+          return {
+            ...el,
+            fillColor:
+              el.fontSize && el.fontSize > 30
+                ? palette.colors[3] || '#0f172a'
+                : palette.colors[1] || palette.colors[0],
+          };
+        }
+        if (el.type === 'shape') {
+          return {
+            ...el,
+            fillColor: palette.colors[0],
+            stroke: el.stroke ? { ...el.stroke, color: palette.colors[2] || palette.colors[1] } : undefined,
+          };
+        }
+        if (el.type === 'icon') {
+          return {
+            ...el,
+            fillColor: palette.colors[2] || palette.colors[1],
+          };
+        }
+        return el;
+      });
+      pushHistory(next);
+      return next;
+    });
+  };
+
+  const applyBrandKitToDesign = () => {
+    setElements((prev) => {
+      const next = prev.map((el) => {
+        if (el.type === 'text' && el.name.toLowerCase().includes('title')) {
+          return {
+            ...el,
+            text: brandKit.brandName.toUpperCase(),
+            fontFamily: brandKit.fontHeading,
+            fillColor: brandKit.primaryColor,
+          };
+        }
+        if (el.type === 'text' && el.name.toLowerCase().includes('tagline')) {
+          return {
+            ...el,
+            text: brandKit.tagline.toUpperCase(),
+            fontFamily: brandKit.fontBody,
+            fillColor: brandKit.secondaryColor,
+          };
+        }
+        if (el.type === 'shape') {
+          return {
+            ...el,
+            fillColor: brandKit.primaryColor,
+            stroke: el.stroke ? { ...el.stroke, color: brandKit.accentColor } : undefined,
+          };
+        }
+        if (el.type === 'icon') {
+          return {
+            ...el,
+            fillColor: brandKit.accentColor,
+          };
+        }
+        return el;
+      });
+      pushHistory(next);
+      return next;
+    });
+  };
+
+  // Keyboard Shortcuts
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+      if (cmdOrCtrl && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      } else if (cmdOrCtrl && e.key === 'y') {
+        e.preventDefault();
+        handleRedo();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        deleteSelected();
+      } else if (cmdOrCtrl && e.key === 'd') {
+        e.preventDefault();
+        duplicateSelected();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo, deleteSelected, duplicateSelected]);
+
+  // Exports
+  const handleExportPng = (scaleMultiplier: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+
+    const offscreen = document.createElement('canvas');
+    offscreen.width = canvasSize.width * scaleMultiplier;
+    offscreen.height = canvasSize.height * scaleMultiplier;
+    const ctx = offscreen.getContext('2d');
     if (!ctx) return;
 
-    // Clear
-    ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
+    ctx.drawImage(canvas, 0, 0, offscreen.width, offscreen.height);
 
-    // Background
-    if (bgType === 'solid') {
-      ctx.fillStyle = bgColor;
-      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
-    } else if (bgType === 'gradient') {
-      const grad = ctx.createLinearGradient(0, 0, canvasSize.width, canvasSize.height);
-      grad.addColorStop(0, gradientStart);
-      grad.addColorStop(1, gradientEnd);
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
-    }
+    const link = document.createElement('a');
+    link.download = `${projectName.toLowerCase().replace(/\s+/g, '-')}-${scaleMultiplier}x.png`;
+    link.href = offscreen.toDataURL('image/png');
+    link.click();
+  };
 
-    // Grid (if transparent or requested)
-    if (showGrid && bgType === 'transparent') {
-      ctx.save();
-      const gridSize = 20;
-      for (let x = 0; x < canvasSize.width; x += gridSize) {
-        for (let y = 0; y < canvasSize.height; y += gridSize) {
-          if ((x / gridSize + y / gridSize) % 2 === 0) {
-            ctx.fillStyle = '#f1f5f9';
-            ctx.fillRect(x, y, gridSize, gridSize);
-          }
-        }
-      }
-      ctx.restore();
-    }
-
-    // Render Elements
-    elements.forEach((el) => {
-      if (!el.visible) return;
-
-      ctx.save();
-      ctx.translate(el.x, el.y);
-      ctx.rotate((el.rotation * Math.PI) / 180);
-      ctx.globalAlpha = el.opacity;
-
-      if (el.type === 'shape') {
-        ctx.fillStyle = el.fillColor || '#ef4444';
-        if (el.strokeWidth && el.strokeColor) {
-          ctx.lineWidth = el.strokeWidth;
-          ctx.strokeStyle = el.strokeColor;
-        }
-
-        const hw = el.width / 2;
-        const hh = el.height / 2;
-
-        ctx.beginPath();
-        if (el.shapeType === 'rect') {
-          const r = el.borderRadius || 0;
-          ctx.roundRect(-hw, -hh, el.width, el.height, r);
-        } else if (el.shapeType === 'circle') {
-          ctx.arc(0, 0, hw, 0, Math.PI * 2);
-        } else if (el.shapeType === 'triangle') {
-          ctx.moveTo(0, -hh);
-          ctx.lineTo(hw, hh);
-          ctx.lineTo(-hw, hh);
-          ctx.closePath();
-        } else if (el.shapeType === 'star') {
-          const spikes = 5;
-          const outerR = hw;
-          const innerR = hw * 0.45;
-          let rot = (Math.PI / 2) * 3;
-          let cx = 0;
-          let cy = 0;
-          const step = Math.PI / spikes;
-
-          ctx.moveTo(cx, cy - outerR);
-          for (let i = 0; i < spikes; i++) {
-            cx = Math.cos(rot) * outerR;
-            cy = Math.sin(rot) * outerR;
-            ctx.lineTo(cx, cy);
-            rot += step;
-
-            cx = Math.cos(rot) * innerR;
-            cy = Math.sin(rot) * innerR;
-            ctx.lineTo(cx, cy);
-            rot += step;
-          }
-          ctx.lineTo(0, -outerR);
-          ctx.closePath();
-        } else if (el.shapeType === 'shield') {
-          ctx.moveTo(0, -hh);
-          ctx.lineTo(hw, -hh * 0.6);
-          ctx.quadraticCurveTo(hw, hh * 0.4, 0, hh);
-          ctx.quadraticCurveTo(-hw, hh * 0.4, -hw, -hh * 0.6);
-          ctx.closePath();
-        } else if (el.shapeType === 'hexagon') {
-          for (let i = 0; i < 6; i++) {
-            const angle = (i * Math.PI) / 3;
-            const px = hw * Math.cos(angle);
-            const py = hw * Math.sin(angle);
-            if (i === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
-          }
-          ctx.closePath();
-        }
-
-        ctx.fill();
-        if (el.strokeWidth && el.strokeColor) {
-          ctx.stroke();
-        }
-      } else if (el.type === 'text') {
-        ctx.font = `${el.fontWeight || '700'} ${el.fontSize || 48}px ${el.fontFamily || 'sans-serif'}`;
-        ctx.fillStyle = el.color || '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        if (el.letterSpacing && (ctx as any).letterSpacing !== undefined) {
-          (ctx as any).letterSpacing = `${el.letterSpacing}px`;
-        }
-
-        if (el.strokeWidth && el.strokeColor && el.strokeWidth > 0) {
-          ctx.lineWidth = el.strokeWidth;
-          ctx.strokeStyle = el.strokeColor;
-          ctx.strokeText(el.text || '', 0, 0);
-        }
-
-        ctx.fillText(el.text || '', 0, 0);
-      }
-
-      // If Selected Highlight Box
-      if (el.id === selectedId) {
-        ctx.strokeStyle = '#3b82f6';
-        ctx.lineWidth = 2 / zoom;
-        ctx.setLineDash([6 / zoom, 6 / zoom]);
-        ctx.strokeRect(-el.width / 2 - 4, -el.height / 2 - 4, el.width + 8, el.height + 8);
-      }
-
-      ctx.restore();
+  const handleExportSvg = () => {
+    const svgString = generateVectorSvg({
+      elements,
+      canvasSize,
+      bgType,
+      bgColor,
+      gradientStart,
+      gradientEnd,
+      gradientAngle,
     });
-  }, [elements, canvasSize, bgType, bgColor, gradientStart, gradientEnd, showGrid, selectedId, zoom]);
+    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const link = document.createElement('a');
+    link.download = `${projectName.toLowerCase().replace(/\s+/g, '-')}.svg`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+  };
 
-  // Export handlers
-  const handleExportPNG = (scale = 1) => {
-    setIsExporting(true);
-    try {
-      const exportCanvas = document.createElement('canvas');
-      exportCanvas.width = canvasSize.width * scale;
-      exportCanvas.height = canvasSize.height * scale;
-      const ctx = exportCanvas.getContext('2d');
-      if (!ctx) return;
+  const handleExportPdf = () => {
+    const svgString = generateVectorSvg({
+      elements,
+      canvasSize,
+      bgType,
+      bgColor,
+      gradientStart,
+      gradientEnd,
+      gradientAngle,
+    });
+    exportVectorAsPdf(svgString, canvasSize.width, canvasSize.height, `${projectName}.pdf`);
+  };
 
-      ctx.scale(scale, scale);
+  const handleExportJson = () => {
+    const projectData = {
+      projectName,
+      canvasSize,
+      bgType,
+      bgColor,
+      gradientStart,
+      gradientEnd,
+      gradientAngle,
+      elements,
+      brandKit,
+    };
+    const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.download = `${projectName.toLowerCase().replace(/\s+/g, '-')}.editmee-logo`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+  };
 
-      // Background
-      if (bgType === 'solid') {
-        ctx.fillStyle = bgColor;
-        ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
-      } else if (bgType === 'gradient') {
-        const grad = ctx.createLinearGradient(0, 0, canvasSize.width, canvasSize.height);
-        grad.addColorStop(0, gradientStart);
-        grad.addColorStop(1, gradientEnd);
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
-      }
+  // Import File Handler
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      // Draw elements
-      elements.forEach((el) => {
-        if (!el.visible) return;
-        ctx.save();
-        ctx.translate(el.x, el.y);
-        ctx.rotate((el.rotation * Math.PI) / 180);
-        ctx.globalAlpha = el.opacity;
-
-        if (el.type === 'shape') {
-          ctx.fillStyle = el.fillColor || '#ef4444';
-          if (el.strokeWidth && el.strokeColor) {
-            ctx.lineWidth = el.strokeWidth;
-            ctx.strokeStyle = el.strokeColor;
+    if (file.name.endsWith('.svg') || file.type === 'image/svg+xml') {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const svgText = ev.target?.result as string;
+        if (svgText) {
+          const imported = parseImportedSvg(svgText, canvasSize);
+          if (imported.length > 0) {
+            setElements((prev) => {
+              const next = [...prev, ...imported];
+              pushHistory(next);
+              return next;
+            });
+            setSelectedIds(imported.map((el) => el.id));
           }
+        }
+      };
+      reader.readAsText(file);
+    } else if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        if (dataUrl) {
+          const imgEl: LogoElement = {
+            id: `img-${Date.now()}`,
+            name: file.name.replace(/\.[^/.]+$/, ''),
+            type: 'icon',
+            iconName: 'Imported Graphic',
+            iconCategory: 'Imported',
+            svgPath: 'M4 4h16v16H4z',
+            viewBox: '0 0 24 24',
+            x: canvasSize.width / 2,
+            y: canvasSize.height / 2,
+            width: 200,
+            height: 200,
+            rotation: 0,
+            opacity: 1,
+            locked: false,
+            visible: true,
+            fillColor: '#3b82f6',
+          };
+          setElements((prev) => {
+            const next = [...prev, imgEl];
+            pushHistory(next);
+            return next;
+          });
+          setSelectedIds([imgEl.id]);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
 
+    e.target.value = '';
+  };
+
+  const handleSaveProject = async () => {
+    const projectData = {
+      projectName,
+      canvasSize,
+      bgType,
+      bgColor,
+      gradientStart,
+      gradientEnd,
+      gradientAngle,
+      elements,
+      brandKit,
+    };
+    try {
+      localStorage.setItem('editmee-saved-logo-project', JSON.stringify(projectData));
+      alert('Logo project successfully saved to local vault!');
+    } catch (e) {
+      console.error('Failed to save project', e);
+    }
+  };
+
+  // Quick fix audit handler
+  const handleQuickFixAudit = (fixType: string) => {
+    if (fixType === 'center-canvas') {
+      alignSelected('center-h');
+      alignSelected('center-v');
+    } else if (fixType === 'fit-safe-area') {
+      const margin = 45;
+      setElements((prev) => {
+        const next = prev.map((el) => {
+          let nx = el.x;
+          let ny = el.y;
           const hw = el.width / 2;
           const hh = el.height / 2;
-          ctx.beginPath();
-          if (el.shapeType === 'rect') {
-            const r = el.borderRadius || 0;
-            ctx.roundRect(-hw, -hh, el.width, el.height, r);
-          } else if (el.shapeType === 'circle') {
-            ctx.arc(0, 0, hw, 0, Math.PI * 2);
-          } else if (el.shapeType === 'shield') {
-            ctx.moveTo(0, -hh);
-            ctx.lineTo(hw, -hh * 0.6);
-            ctx.quadraticCurveTo(hw, hh * 0.4, 0, hh);
-            ctx.quadraticCurveTo(-hw, hh * 0.4, -hw, -hh * 0.6);
-            ctx.closePath();
-          } else if (el.shapeType === 'star') {
-            const spikes = 5;
-            const outerR = hw;
-            const innerR = hw * 0.45;
-            let rot = (Math.PI / 2) * 3;
-            let cx = 0;
-            let cy = 0;
-            const step = Math.PI / spikes;
-            ctx.moveTo(cx, cy - outerR);
-            for (let i = 0; i < spikes; i++) {
-              cx = Math.cos(rot) * outerR;
-              cy = Math.sin(rot) * outerR;
-              ctx.lineTo(cx, cy);
-              rot += step;
-              cx = Math.cos(rot) * innerR;
-              cy = Math.sin(rot) * innerR;
-              ctx.lineTo(cx, cy);
-              rot += step;
-            }
-            ctx.lineTo(0, -outerR);
-            ctx.closePath();
-          }
-          ctx.fill();
-          if (el.strokeWidth && el.strokeColor) ctx.stroke();
-        } else if (el.type === 'text') {
-          ctx.font = `${el.fontWeight || '700'} ${el.fontSize || 48}px ${el.fontFamily || 'sans-serif'}`;
-          ctx.fillStyle = el.color || '#ffffff';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          if (el.letterSpacing && (ctx as any).letterSpacing !== undefined) {
-            (ctx as any).letterSpacing = `${el.letterSpacing}px`;
-          }
-          if (el.strokeWidth && el.strokeColor && el.strokeWidth > 0) {
-            ctx.lineWidth = el.strokeWidth;
-            ctx.strokeStyle = el.strokeColor;
-            ctx.strokeText(el.text || '', 0, 0);
-          }
-          ctx.fillText(el.text || '', 0, 0);
-        }
-        ctx.restore();
+          if (nx - hw < margin) nx = margin + hw;
+          if (nx + hw > canvasSize.width - margin) nx = canvasSize.width - margin - hw;
+          if (ny - hh < margin) ny = margin + hh;
+          if (ny + hh > canvasSize.height - margin) ny = canvasSize.height - margin - hh;
+          return { ...el, x: nx, y: ny };
+        });
+        pushHistory(next);
+        return next;
       });
-
-      const url = exportCanvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `logo-design-${scale}x.png`;
-      link.click();
-
-      storageEngine.addHistoryItem({
-        toolId: 'logo-maker-studio',
-        toolName: 'Logo Maker Studio',
-        category: 'logo',
-        status: 'completed',
-        outputSummary: `Exported ${exportCanvas.width}x${exportCanvas.height}px PNG logo`,
+    } else if (fixType === 'boost-text-size') {
+      setElements((prev) => {
+        const next = prev.map((el) => {
+          if (el.type === 'text' && (el.fontSize || 12) < 16) {
+            return { ...el, fontSize: 16 };
+          }
+          return el;
+        });
+        pushHistory(next);
+        return next;
       });
-    } finally {
-      setIsExporting(false);
+    } else if (fixType === 'simplify-palette') {
+      applyBrandKitToDesign();
     }
   };
 
-  const handleExportSVG = () => {
-    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasSize.width} ${canvasSize.height}" width="${canvasSize.width}" height="${canvasSize.height}">\n`;
-
-    if (bgType === 'solid') {
-      svgContent += `  <rect width="100%" height="100%" fill="${bgColor}"/>\n`;
-    }
-
-    elements.forEach((el) => {
-      if (!el.visible) return;
-      const opacity = el.opacity !== 1 ? ` opacity="${el.opacity}"` : '';
-      const transform = ` transform="translate(${el.x}, ${el.y}) rotate(${el.rotation})"`;
-
-      if (el.type === 'shape') {
-        const hw = el.width / 2;
-        const hh = el.height / 2;
-        const fill = ` fill="${el.fillColor || '#ef4444'}"`;
-        const stroke = el.strokeWidth ? ` stroke="${el.strokeColor || '#000000'}" stroke-width="${el.strokeWidth}"` : '';
-
-        if (el.shapeType === 'rect') {
-          svgContent += `  <rect x="${-hw}" y="${-hh}" width="${el.width}" height="${el.height}" rx="${el.borderRadius || 0}"${fill}${stroke}${transform}${opacity}/>\n`;
-        } else if (el.shapeType === 'circle') {
-          svgContent += `  <circle cx="0" cy="0" r="${hw}"${fill}${stroke}${transform}${opacity}/>\n`;
-        } else if (el.shapeType === 'shield') {
-          svgContent += `  <path d="M 0 ${-hh} L ${hw} ${-hh * 0.6} Q ${hw} ${hh * 0.4} 0 ${hh} Q ${-hw} ${hh * 0.4} ${-hw} ${-hh * 0.6} Z"${fill}${stroke}${transform}${opacity}/>\n`;
-        }
-      } else if (el.type === 'text') {
-        const fill = ` fill="${el.color || '#ffffff'}"`;
-        const font = ` font-family="${el.fontFamily || 'sans-serif'}" font-size="${el.fontSize || 48}" font-weight="${el.fontWeight || '700'}" letter-spacing="${el.letterSpacing || 0}px" text-anchor="middle" dominant-baseline="middle"`;
-        svgContent += `  <text x="0" y="0"${font}${fill}${transform}${opacity}>${el.text}</text>\n`;
+  const canvasDataUrl = useMemo(() => {
+    if (canvasRef.current) {
+      try {
+        return canvasRef.current.toDataURL('image/png');
+      } catch {
+        return '';
       }
-    });
-
-    svgContent += '</svg>';
-
-    const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'logo-vector.svg';
-    link.click();
-    URL.revokeObjectURL(url);
-  };
+    }
+    return '';
+  }, [elements, canvasSize, bgType, bgColor, gradientStart, gradientEnd, gradientAngle]);
 
   return (
-    <div className="space-y-6">
-      {/* Studio Header Bar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 text-white shadow-xl">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-red-600/20 border border-red-500/40 rounded-xl text-red-400">
-            <Sparkles className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-lg font-black tracking-tight flex items-center gap-2">
-              Logo Maker Studio Pro
-              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-600 text-white uppercase tracking-wider">
-                Vector Canvas
-              </span>
-            </h1>
-            <p className="text-xs text-slate-400">
-              Design professional vector logos, brandmarks, badges, and typography with transparent exports.
-            </p>
-          </div>
+    <div className="w-full h-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden select-none font-sans">
+      {/* Hidden File Input for Import */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept=".svg,.png,.jpg,.jpeg"
+        className="hidden"
+      />
+
+      {/* 1. TOP BAR */}
+      <TopBar
+        projectName={projectName}
+        setProjectName={setProjectName}
+        canvasSize={canvasSize}
+        onOpenPresetModal={() => setPresetModalOpen(true)}
+        canUndo={historyIndex > 0}
+        canRedo={historyIndex < history.length - 1}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        zoom={zoom}
+        onZoomIn={() => setZoom((prev) => Math.min(prev * 1.2, 4.0))}
+        onZoomOut={() => setZoom((prev) => Math.max(prev / 1.2, 0.2))}
+        onFitCanvas={handleFitCanvas}
+        showRulers={showRulers}
+        setShowRulers={setShowRulers}
+        showGrid={showGrid}
+        setShowGrid={setShowGrid}
+        enableSnapping={enableSnapping}
+        setEnableSnapping={setEnableSnapping}
+        showSafeArea={showSafeArea}
+        setShowSafeArea={setShowSafeArea}
+        onOpenBrandKit={() => setBrandKitModalOpen(true)}
+        onOpenAudit={() => setAuditModalOpen(true)}
+        auditScore={auditReport.overallScore}
+        onOpenVariations={() => setVariationsModalOpen(true)}
+        onOpenPreview={() => setPreviewModalOpen(true)}
+        onImportClick={() => fileInputRef.current?.click()}
+        onSaveProject={handleSaveProject}
+        onExportPng={handleExportPng}
+        onExportSvg={handleExportSvg}
+        onExportPdf={handleExportPdf}
+        onExportJson={handleExportJson}
+        onOpenExportCenter={() => setExportCenterOpen(true)}
+      />
+
+      {/* 2. MAIN WORKSPACE (LEFT PANEL | CANVAS WORKSPACE | RIGHT INSPECTOR) */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Left Sidebar (Desktop & Tablet) */}
+        <div className="hidden md:flex">
+          <LeftSidebar
+            activeTab={leftTab}
+            setActiveTab={setLeftTab}
+            isCollapsed={leftCollapsed}
+            setIsCollapsed={setLeftCollapsed}
+            elements={elements}
+            selectedIds={selectedIds}
+            setSelectedIds={setSelectedIds}
+            onApplyTemplate={applyTemplate}
+            onAddText={addTextElement}
+            onAddShape={addShapeElement}
+            onAddIcon={addIconElement}
+            onApplyPalette={applyPaletteToLogo}
+            bgType={bgType}
+            setBgType={setBgType}
+            bgColor={bgColor}
+            setBgColor={setBgColor}
+            gradientStart={gradientStart}
+            setGradientStart={setGradientStart}
+            gradientEnd={gradientEnd}
+            setGradientEnd={setGradientEnd}
+            gradientAngle={gradientAngle}
+            setGradientAngle={setGradientAngle}
+            onReorderLayer={reorderLayer}
+            onToggleVisibility={(id) => {
+              setElements((prev) => {
+                const next = prev.map((el) => (el.id === id ? { ...el, visible: !el.visible } : el));
+                pushHistory(next);
+                return next;
+              });
+            }}
+            onToggleLock={(id) => {
+              setElements((prev) => {
+                const next = prev.map((el) => (el.id === id ? { ...el, locked: !el.locked } : el));
+                pushHistory(next);
+                return next;
+              });
+            }}
+            onDeleteElement={(id) => {
+              setElements((prev) => {
+                const next = prev.filter((el) => el.id !== id);
+                pushHistory(next);
+                return next;
+              });
+              setSelectedIds((prev) => prev.filter((item) => item !== id));
+            }}
+            onDuplicateElement={(id) => {
+              const target = elements.find((el) => el.id === id);
+              if (target) {
+                const dup: LogoElement = {
+                  ...JSON.parse(JSON.stringify(target)),
+                  id: `${target.type}-${Date.now()}`,
+                  name: `${target.name} (Copy)`,
+                  x: target.x + 20,
+                  y: target.y + 20,
+                };
+                setElements((prev) => {
+                  const next = [...prev, dup];
+                  pushHistory(next);
+                  return next;
+                });
+                setSelectedIds([dup.id]);
+              }
+            }}
+          />
         </div>
 
-        {/* Export Buttons */}
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <button
-            type="button"
-            onClick={() => handleExportPNG(1)}
-            disabled={isExporting}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
-          >
-            <Download className="w-4 h-4 text-slate-300" />
-            <span>PNG (1x)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleExportPNG(2)}
-            disabled={isExporting}
-            className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-red-600/20 cursor-pointer"
-          >
-            <Download className="w-4 h-4" />
-            <span>High-Res PNG (2x)</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleExportSVG}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-emerald-600/20 cursor-pointer"
-          >
-            <FileCode className="w-4 h-4" />
-            <span>Vector SVG</span>
-          </button>
-        </div>
-      </div>
+        {/* Center: Dynamically Scaled Canvas Workspace */}
+        <CanvasWorkspace
+          canvasSize={canvasSize}
+          bgType={bgType}
+          bgColor={bgColor}
+          gradientStart={gradientStart}
+          gradientEnd={gradientEnd}
+          gradientAngle={gradientAngle}
+          zoom={zoom}
+          setZoom={setZoom}
+          panOffset={panOffset}
+          setPanOffset={setPanOffset}
+          isPanMode={isPanMode}
+          showGrid={showGrid}
+          setShowGrid={setShowGrid}
+          showRulers={showRulers}
+          setShowRulers={setShowRulers}
+          showSafeArea={showSafeArea}
+          setShowSafeArea={setShowSafeArea}
+          enableSnapping={enableSnapping}
+          setEnableSnapping={setEnableSnapping}
+          elements={elements}
+          selectedIds={selectedIds}
+          setSelectedIds={setSelectedIds}
+          activeGuides={activeGuides}
+          setActiveGuides={setActiveGuides}
+          onUpdateElement={updateElementById}
+          onUpdateElementsBatch={updateElementsBatch}
+          onCommitHistory={handleCommitHistory}
+          cursorPos={cursorPos}
+          setCursorPos={setCursorPos}
+          canvasRef={canvasRef}
+          containerRef={containerRef}
+          onFitCanvas={handleFitCanvas}
+        />
 
-      {/* Main Studio Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Toolbar / Inspector (4 Cols) */}
-        <div className="lg:col-span-4 space-y-5">
-          {/* Tab Selection */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-1.5 flex gap-1 text-xs font-bold text-slate-400">
-            <button
-              type="button"
-              onClick={() => setActiveTab('text')}
-              className={`flex-1 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                activeTab === 'text' ? 'bg-red-600 text-white shadow-xs' : 'hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Type className="w-3.5 h-3.5" />
-              <span>Text</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('shapes')}
-              className={`flex-1 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                activeTab === 'shapes' ? 'bg-red-600 text-white shadow-xs' : 'hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Shapes className="w-3.5 h-3.5" />
-              <span>Shapes</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('canvas')}
-              className={`flex-1 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                activeTab === 'canvas' ? 'bg-red-600 text-white shadow-xs' : 'hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Palette className="w-3.5 h-3.5" />
-              <span>Canvas</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('layers')}
-              className={`flex-1 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                activeTab === 'layers' ? 'bg-red-600 text-white shadow-xs' : 'hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Layers</span>
-            </button>
-          </div>
-
-          {/* Tab 1: Text Inspector */}
-          {activeTab === 'text' && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 text-slate-900">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Typography Controls
-                </h3>
-                <button
-                  type="button"
-                  onClick={addTextElement}
-                  className="flex items-center gap-1 px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Text</span>
-                </button>
-              </div>
-
-              {selectedElement && selectedElement.type === 'text' ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                      Text Content
-                    </label>
-                    <input
-                      type="text"
-                      value={selectedElement.text || ''}
-                      onChange={(e) => updateSelected({ text: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-red-500"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                        Font Family
-                      </label>
-                      <select
-                        value={selectedElement.fontFamily || 'Inter, sans-serif'}
-                        onChange={(e) => updateSelected({ fontFamily: e.target.value })}
-                        className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                      >
-                        <option value="Inter, sans-serif">Modern Sans</option>
-                        <option value="'Playfair Display', serif">Display Serif</option>
-                        <option value="monospace">Tech Monospace</option>
-                        <option value="cursive">Signature Script</option>
-                        <option value="Impact, sans-serif">Bold Headline</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                        Font Weight
-                      </label>
-                      <select
-                        value={selectedElement.fontWeight || '700'}
-                        onChange={(e) => updateSelected({ fontWeight: e.target.value })}
-                        className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                      >
-                        <option value="400">Regular (400)</option>
-                        <option value="600">Semibold (600)</option>
-                        <option value="800">ExtraBold (800)</option>
-                        <option value="900">Black (900)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                        Size: {selectedElement.fontSize}px
-                      </label>
-                      <input
-                        type="range"
-                        min={12}
-                        max={140}
-                        value={selectedElement.fontSize || 48}
-                        onChange={(e) => updateSelected({ fontSize: Number(e.target.value) })}
-                        className="w-full accent-red-600"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                        Spacing: {selectedElement.letterSpacing || 0}px
-                      </label>
-                      <input
-                        type="range"
-                        min={-4}
-                        max={30}
-                        value={selectedElement.letterSpacing || 0}
-                        onChange={(e) => updateSelected({ letterSpacing: Number(e.target.value) })}
-                        className="w-full accent-red-600"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                        Text Color
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={selectedElement.color || '#ffffff'}
-                          onChange={(e) => updateSelected({ color: e.target.value })}
-                          className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5"
-                        />
-                        <span className="text-xs font-mono font-bold text-slate-700">
-                          {selectedElement.color}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                        Rotation: {selectedElement.rotation}°
-                      </label>
-                      <input
-                        type="range"
-                        min={-180}
-                        max={180}
-                        value={selectedElement.rotation || 0}
-                        onChange={(e) => updateSelected({ rotation: Number(e.target.value) })}
-                        className="w-full accent-red-600"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-6 text-center border-2 border-dashed border-slate-200 rounded-xl space-y-2">
-                  <p className="text-xs font-bold text-slate-500">
-                    Select a text element from the canvas or click "Add Text".
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Tab 2: Shapes Inspector */}
-          {activeTab === 'shapes' && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 text-slate-900">
-              <div className="border-b border-slate-100 pb-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Vector Shape Library
-                </h3>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => addShapeElement('shield')}
-                  className="p-3 border border-slate-200 hover:border-red-500 rounded-xl flex flex-col items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-red-600 transition-colors cursor-pointer"
-                >
-                  <Shield className="w-5 h-5 text-red-500" />
-                  <span>Shield</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addShapeElement('circle')}
-                  className="p-3 border border-slate-200 hover:border-red-500 rounded-xl flex flex-col items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-red-600 transition-colors cursor-pointer"
-                >
-                  <Circle className="w-5 h-5 text-blue-500" />
-                  <span>Circle</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addShapeElement('star')}
-                  className="p-3 border border-slate-200 hover:border-red-500 rounded-xl flex flex-col items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-red-600 transition-colors cursor-pointer"
-                >
-                  <Star className="w-5 h-5 text-amber-500" />
-                  <span>Star</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addShapeElement('rect')}
-                  className="p-3 border border-slate-200 hover:border-red-500 rounded-xl flex flex-col items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-red-600 transition-colors cursor-pointer"
-                >
-                  <Square className="w-5 h-5 text-emerald-500" />
-                  <span>Rectangle</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addShapeElement('triangle')}
-                  className="p-3 border border-slate-200 hover:border-red-500 rounded-xl flex flex-col items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-red-600 transition-colors cursor-pointer"
-                >
-                  <div className="w-5 h-5 border-b-2 border-r-2 border-indigo-500 rotate-45" />
-                  <span>Triangle</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addShapeElement('hexagon')}
-                  className="p-3 border border-slate-200 hover:border-red-500 rounded-xl flex flex-col items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-red-600 transition-colors cursor-pointer"
-                >
-                  <Shapes className="w-5 h-5 text-purple-500" />
-                  <span>Hexagon</span>
-                </button>
-              </div>
-
-              {selectedElement && selectedElement.type === 'shape' && (
-                <div className="space-y-4 pt-3 border-t border-slate-100">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                        Fill Color
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={selectedElement.fillColor || '#ef4444'}
-                          onChange={(e) => updateSelected({ fillColor: e.target.value })}
-                          className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5"
-                        />
-                        <span className="text-xs font-mono font-bold text-slate-700">
-                          {selectedElement.fillColor}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                        Stroke Color
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={selectedElement.strokeColor || '#b91c1c'}
-                          onChange={(e) => updateSelected({ strokeColor: e.target.value })}
-                          className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5"
-                        />
-                        <span className="text-xs font-mono font-bold text-slate-700">
-                          {selectedElement.strokeColor}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                        Size: {selectedElement.width}px
-                      </label>
-                      <input
-                        type="range"
-                        min={40}
-                        max={600}
-                        value={selectedElement.width}
-                        onChange={(e) =>
-                          updateSelected({
-                            width: Number(e.target.value),
-                            height: Number(e.target.value),
-                          })
-                        }
-                        className="w-full accent-red-600"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                        Stroke: {selectedElement.strokeWidth || 0}px
-                      </label>
-                      <input
-                        type="range"
-                        min={0}
-                        max={20}
-                        value={selectedElement.strokeWidth || 0}
-                        onChange={(e) => updateSelected({ strokeWidth: Number(e.target.value) })}
-                        className="w-full accent-red-600"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Tab 3: Canvas Setup */}
-          {activeTab === 'canvas' && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 text-slate-900">
-              <div className="border-b border-slate-100 pb-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Canvas Background & Guides
-                </h3>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                    Background Mode
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['transparent', 'solid', 'gradient'] as const).map((mode) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => setBgType(mode)}
-                        className={`py-2 px-3 rounded-xl text-xs font-bold capitalize transition-colors cursor-pointer ${
-                          bgType === mode
-                            ? 'bg-red-600 text-white'
-                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                        }`}
-                      >
-                        {mode}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {bgType === 'solid' && (
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                      Solid Background Color
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={bgColor}
-                        onChange={(e) => setBgColor(e.target.value)}
-                        className="w-10 h-10 rounded-xl border border-slate-200 cursor-pointer p-1"
-                      />
-                      <span className="text-xs font-mono font-bold text-slate-700">{bgColor}</span>
-                    </div>
-                  </div>
-                )}
-
-                {bgType === 'gradient' && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                        Start Color
-                      </label>
-                      <input
-                        type="color"
-                        value={gradientStart}
-                        onChange={(e) => setGradientStart(e.target.value)}
-                        className="w-full h-9 rounded-xl border border-slate-200 cursor-pointer p-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                        End Color
-                      </label>
-                      <input
-                        type="color"
-                        value={gradientEnd}
-                        onChange={(e) => setGradientEnd(e.target.value)}
-                        className="w-full h-9 rounded-xl border border-slate-200 cursor-pointer p-1"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700">Show Grid & Guides</span>
-                  <input
-                    type="checkbox"
-                    checked={showGrid}
-                    onChange={(e) => setShowGrid(e.target.checked)}
-                    className="w-4 h-4 accent-red-600 rounded cursor-pointer"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Tab 4: Layer Manager */}
-          {activeTab === 'layers' && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3 text-slate-900">
-              <div className="border-b border-slate-100 pb-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Layers ({elements.length})
-                </h3>
-              </div>
-
-              <div className="space-y-1.5 max-h-72 overflow-y-auto">
-                {elements.map((el) => (
-                  <div
-                    key={el.id}
-                    onClick={() => setSelectedId(el.id)}
-                    className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs font-bold cursor-pointer transition-colors ${
-                      el.id === selectedId
-                        ? 'border-red-500 bg-red-50/50 text-red-900'
-                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      {el.type === 'text' ? (
-                        <Type className="w-4 h-4 text-slate-500 shrink-0" />
-                      ) : (
-                        <Shield className="w-4 h-4 text-slate-500 shrink-0" />
-                      )}
-                      <span className="truncate">{el.name}</span>
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setElements((prev) =>
-                            prev.map((item) =>
-                              item.id === el.id ? { ...item, visible: !item.visible } : item
-                            )
-                          );
-                        }}
-                        className="p-1 text-slate-400 hover:text-slate-700 rounded cursor-pointer"
-                      >
-                        {el.visible ? (
-                          <Eye className="w-3.5 h-3.5" />
-                        ) : (
-                          <EyeOff className="w-3.5 h-3.5 text-red-500" />
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setElements((prev) => prev.filter((item) => item.id !== el.id));
-                          if (selectedId === el.id) setSelectedId(null);
-                        }}
-                        className="p-1 text-slate-400 hover:text-red-600 rounded cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right Canvas Stage (8 Cols) */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col items-center justify-center min-h-[560px] relative overflow-hidden">
-            {/* Viewport Zoom Controls */}
-            <div className="absolute top-4 right-4 bg-slate-800/80 backdrop-blur-xs border border-slate-700 rounded-xl p-1.5 flex items-center gap-2 text-slate-300 text-xs font-bold z-10">
-              <button
-                type="button"
-                onClick={() => setZoom((z) => Math.max(0.4, z - 0.1))}
-                className="p-1 hover:bg-slate-700 rounded cursor-pointer"
-              >
-                <ZoomOut className="w-3.5 h-3.5" />
-              </button>
-              <span className="font-mono">{Math.round(zoom * 100)}%</span>
-              <button
-                type="button"
-                onClick={() => setZoom((z) => Math.min(2.0, z + 0.1))}
-                className="p-1 hover:bg-slate-700 rounded cursor-pointer"
-              >
-                <ZoomIn className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setZoom(1)}
-                className="px-2 py-0.5 hover:bg-slate-700 rounded text-[10px] cursor-pointer"
-              >
-                Reset
-              </button>
-            </div>
-
-            {/* Interactive Canvas Viewport */}
-            <div
-              className="border-2 border-slate-700/80 rounded-xl shadow-2xl overflow-hidden transition-transform duration-75"
-              style={{
-                transform: `scale(${zoom})`,
-                transformOrigin: 'center center',
-              }}
-            >
-              <canvas
-                ref={canvasRef}
-                width={canvasSize.width}
-                height={canvasSize.height}
-                className="w-[440px] h-[440px] md:w-[520px] md:h-[520px] block cursor-crosshair"
-              />
-            </div>
-          </div>
+        {/* Right Inspector (Desktop & Tablet) */}
+        <div className="hidden md:flex">
+          <RightInspector
+            selectedElement={primarySelected}
+            onUpdateSelected={updateSelected}
+            onDeleteSelected={deleteSelected}
+            onDuplicateSelected={duplicateSelected}
+            onAlignSelected={alignSelected}
+            onReorderLayer={reorderLayer}
+            canvasSize={canvasSize}
+            onOpenPresetModal={() => setPresetModalOpen(true)}
+            bgType={bgType}
+            setBgType={setBgType}
+            bgColor={bgColor}
+            setBgColor={setBgColor}
+            showGrid={showGrid}
+            setShowGrid={setShowGrid}
+            showRulers={showRulers}
+            setShowRulers={setShowRulers}
+            showSafeArea={showSafeArea}
+            setShowSafeArea={setShowSafeArea}
+            enableSnapping={enableSnapping}
+            setEnableSnapping={setEnableSnapping}
+            isCollapsed={rightCollapsed}
+            setIsCollapsed={setRightCollapsed}
+          />
         </div>
       </div>
+
+      {/* 3. MOBILE TOOL DOCK & BOTTOM SHEET (Mobile devices only) */}
+      <MobileDock
+        elements={elements}
+        selectedElement={primarySelected}
+        selectedIds={selectedIds}
+        onSelectElement={(id) => setSelectedIds([id])}
+        onDeselect={() => setSelectedIds([])}
+        onDuplicateSelected={duplicateSelected}
+        onDeleteSelected={deleteSelected}
+        onReorderLayer={reorderLayer}
+        onApplyTemplate={applyTemplate}
+        onAddText={addTextElement}
+        onAddShape={addShapeElement}
+        onAddIcon={addIconElement}
+        onApplyPalette={applyPaletteToLogo}
+        bgType={bgType}
+        setBgType={setBgType}
+        bgColor={bgColor}
+        setBgColor={setBgColor}
+        onOpenBrandKit={() => setBrandKitModalOpen(true)}
+        onOpenAudit={() => setAuditModalOpen(true)}
+        onOpenVariations={() => setVariationsModalOpen(true)}
+        onOpenExportCenter={() => setExportCenterOpen(true)}
+        onToggleVisibility={(id) => {
+          setElements((prev) => {
+            const next = prev.map((el) => (el.id === id ? { ...el, visible: !el.visible } : el));
+            pushHistory(next);
+            return next;
+          });
+        }}
+        onToggleLock={(id) => {
+          setElements((prev) => {
+            const next = prev.map((el) => (el.id === id ? { ...el, locked: !el.locked } : el));
+            pushHistory(next);
+            return next;
+          });
+        }}
+      />
+
+      {/* 4. MOBILE CONTEXTUAL OBJECT MANIPULATION BAR (Mobile & small screens) */}
+      {primarySelected && (
+        <MobileObjectBar
+          element={primarySelected}
+          canvasSize={canvasSize}
+          onUpdateElement={updateElementById}
+          onDuplicate={duplicateSelected}
+          onDelete={deleteSelected}
+          onDeselect={() => setSelectedIds([])}
+          onReorder={reorderLayer}
+          onAlign={alignSelected}
+          onOpenTextEditor={() => setMobileTextEditorOpen(true)}
+        />
+      )}
+
+      {/* 5. MOBILE FLOATING QUICK ADD FAB */}
+      <MobileQuickAdd
+        onAddText={addTextElement}
+        onAddShape={addShapeElement}
+        onOpenIcons={() => {}}
+        onOpenTemplates={() => {}}
+        onOpenPalettes={() => {}}
+        isCanvasEmpty={elements.length === 0}
+      />
+
+      {/* 6. MOBILE TEXT EDITOR MODAL */}
+      <MobileTextEditorModal
+        isOpen={mobileTextEditorOpen}
+        onClose={() => setMobileTextEditorOpen(false)}
+        element={primarySelected?.type === 'text' ? primarySelected : null}
+        onUpdateElement={updateElementById}
+      />
+
+      {/* 4. MODALS */}
+      <CanvasPresetModal
+        isOpen={presetModalOpen}
+        onClose={() => setPresetModalOpen(false)}
+        currentDimensions={canvasSize}
+        onApplyDimensions={(newDims) => setCanvasSize(newDims)}
+      />
+
+      <BrandKitModal
+        isOpen={brandKitModalOpen}
+        onClose={() => setBrandKitModalOpen(false)}
+        brandKit={brandKit}
+        onSaveBrandKit={(updated) => setBrandKit(updated)}
+        onApplyToCanvas={applyBrandKitToDesign}
+      />
+
+      <BrandAuditModal
+        isOpen={auditModalOpen}
+        onClose={() => setAuditModalOpen(false)}
+        report={auditReport}
+        onRunAction={handleQuickFixAudit}
+        onReAudit={() => {}}
+      />
+
+      <VariationsModal
+        isOpen={variationsModalOpen}
+        onClose={() => setVariationsModalOpen(false)}
+        elements={elements}
+        canvasSize={canvasSize}
+        onApplyVariation={(variants) => {
+          setElements(variants);
+          pushHistory(variants);
+        }}
+        onExportVariantPng={(variants, title) => {
+          setElements(variants);
+          setTimeout(() => handleExportPng(2), 100);
+        }}
+      />
+
+      <PreviewModal
+        isOpen={previewModalOpen}
+        onClose={() => setPreviewModalOpen(false)}
+        elements={elements}
+        canvasSize={canvasSize}
+        canvasDataUrl={canvasDataUrl}
+      />
+
+      <ExportCenterModal
+        isOpen={exportCenterOpen}
+        onClose={() => setExportCenterOpen(false)}
+        elements={elements}
+        canvasSize={canvasSize}
+        bgType={bgType}
+        bgColor={bgColor}
+        gradientStart={gradientStart}
+        gradientEnd={gradientEnd}
+        gradientAngle={gradientAngle}
+        projectName={projectName}
+        brandKit={brandKit}
+      />
     </div>
   );
 };
@@ -1083,10 +1166,11 @@ export const logoMakerStudioToolDef: ToolDefinition = {
   name: 'Logo Maker Studio Pro',
   category: 'logo',
   subcategory: 'branding',
-  description: 'Design professional vector logos, brand marks, and typography with transparent PNG & SVG export.',
+  description:
+    'Professional vector logo design studio with curated starting templates, 120+ authentic vector symbols, precision typography, curved text, layer management, brand kit, and vector SVG & high-res PNG export.',
   iconName: 'Sparkles',
   version: '2.0.0',
-  tags: ['logo', 'brand', 'vector', 'svg', 'canvas', 'badge', 'typography', 'design'],
+  tags: ['logo', 'brand', 'vector', 'svg', 'canvas', 'badge', 'typography', 'design', 'symbols', 'icons'],
   executionMode: 'client',
   supportsBatch: false,
   supportsWorkflow: false,
@@ -1106,7 +1190,7 @@ export const logoMakerStudioToolDef: ToolDefinition = {
   execute: async () => {
     return {
       success: true,
-      text: 'Logo Maker ready',
+      text: 'Logo Maker Studio Pro ready',
     };
   },
 };

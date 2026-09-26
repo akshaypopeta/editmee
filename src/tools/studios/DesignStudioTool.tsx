@@ -1,312 +1,715 @@
-import React, { useState, useMemo } from 'react';
-import { ToolDefinition } from '../../types';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  Palette,
-  Sparkles,
-  Layers,
-  Copy,
-  Check,
-  RefreshCw,
-  Sun,
+  LayoutTemplate,
+  Type,
+  Square,
+  Image as ImageIcon,
+  PenTool,
   Sliders,
-  Code,
-  Download,
-  Eye,
+  Layers,
 } from 'lucide-react';
+import { ToolDefinition } from '../../types';
 import { storageEngine } from '../../core/storage-engine/StorageEngine';
+import {
+  DesignElement,
+  CanvasSettings,
+  ActiveSidebarTab,
+  BrandKit,
+  HistoryState,
+  DrawingPath,
+} from './design-studio/types';
+import { TopBar } from './design-studio/TopBar';
+import { Sidebar } from './design-studio/Sidebar';
+import { CanvasViewport } from './design-studio/CanvasViewport';
+import { PropertiesPanel } from './design-studio/PropertiesPanel';
+import { ExportModal } from './design-studio/ExportModal';
+import { DesignAuditModal } from './design-studio/DesignAuditModal';
+import { MockupModal } from './design-studio/MockupModal';
+import { AiStudioModal } from './design-studio/AiStudioModal';
+import { auditDesign } from './design-studio/designAdvisor';
+import { DESIGN_TEMPLATES, DesignTemplate } from './design-studio/templates';
+
+const STORAGE_KEY = 'editmee_design_studio_state_v2';
 
 export const DesignStudioWorkspace: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'palette' | 'shadow' | 'gradient'>('palette');
-  const [baseColor, setBaseColor] = useState('#ef4444');
-  const [copied, setCopied] = useState(false);
+  // Canvas Configuration State
+  const [settings, setSettings] = useState<CanvasSettings>({
+    name: 'Untitled Social Campaign',
+    width: 1080,
+    height: 1080,
+    unit: 'px',
+    dpi: 72,
+    bgType: 'gradient',
+    bgColor: '#090d16',
+    gradientStart: '#090d16',
+    gradientEnd: '#1e1b4b',
+    gradientAngle: 145,
+    zoom: 0.65,
+    panOffset: { x: 0, y: 0 },
+    showGrid: false,
+    gridSize: 40,
+    showRulers: false,
+    showSafeArea: true,
+    safeAreaMargin: 0.05,
+    enableSnapping: true,
+    bleed: 0,
+  });
 
-  // Shadow Generator State
-  const [shadowX, setShadowX] = useState(0);
-  const [shadowY, setShadowY] = useState(10);
-  const [shadowBlur, setShadowBlur] = useState(25);
-  const [shadowSpread, setShadowSpread] = useState(-5);
-  const [shadowOpacity, setShadowOpacity] = useState(0.15);
+  // Design Elements (Layers)
+  const [elements, setElements] = useState<DesignElement[]>(() => {
+    // Initial default layout from cyber launch template
+    return DESIGN_TEMPLATES[0].elements;
+  });
 
-  // Gradient State
-  const [gradColor1, setGradColor1] = useState('#ef4444');
-  const [gradColor2, setGradColor2] = useState('#3b82f6');
-  const [gradAngle, setGradAngle] = useState(135);
+  // Selection & Active Tool State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [activeSidebarTab, setActiveSidebarTab] = useState<ActiveSidebarTab>('templates');
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
 
-  // Palette Generation
-  const palettes = useMemo(() => {
-    // Generate simple harmonious tones
-    return [
-      { name: '50', hex: '#fef2f2' },
-      { name: '100', hex: '#fee2e2' },
-      { name: '300', hex: '#fca5a5' },
-      { name: '500 (Primary)', hex: baseColor },
-      { name: '700', hex: '#b91c1c' },
-      { name: '900', hex: '#7f1d1d' },
-    ];
-  }, [baseColor]);
+  // Drawing mode state
+  const [isDrawingMode, setIsDrawingMode] = useState<boolean>(false);
+  const [drawingTool, setDrawingTool] = useState<'brush' | 'pencil' | 'highlighter' | 'eraser'>('brush');
+  const [drawColor, setDrawColor] = useState<string>('#38bdf8');
+  const [drawWidth, setDrawWidth] = useState<number>(6);
 
-  const cssShadowCode = `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px ${shadowSpread}px rgba(0, 0, 0, ${shadowOpacity});`;
-  const cssGradientCode = `background: linear-gradient(${gradAngle}deg, ${gradColor1}, ${gradColor2});`;
+  // Brand Kit State
+  const [brandKit, setBrandKit] = useState<BrandKit>({
+    brandName: 'EditMee Brand',
+    primaryColor: '#ef4444',
+    secondaryColor: '#3b82f6',
+    accentColor: '#f59e0b',
+    neutralLight: '#f8fafc',
+    neutralDark: '#0f172a',
+    headingFont: 'system-ui, sans-serif',
+    bodyFont: 'system-ui, sans-serif',
+  });
 
-  const handleCopy = (val: string) => {
-    navigator.clipboard.writeText(val);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  // Modals state
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isAuditOpen, setIsAuditOpen] = useState(false);
+  const [isMockupOpen, setIsMockupOpen] = useState(false);
+  const [isAiOpen, setIsAiOpen] = useState(false);
+
+  // Responsive Layout & Panel Visibility
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isLeftDrawerOpen, setIsLeftDrawerOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 1200;
+    }
+    return true;
+  });
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 1440;
+    }
+    return false;
+  });
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
+  const [fitTrigger, setFitTrigger] = useState(1);
+
+  // Hidden file input for image uploads
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // History State Stack (Undo / Redo)
+  const historyRef = useRef<{
+    past: HistoryState[];
+    future: HistoryState[];
+  }>({ past: [], future: [] });
+
+  const [historyVersion, setHistoryVersion] = useState(0);
+
+  // Helper to push state to history
+  const commitHistory = useCallback(() => {
+    const currentState: HistoryState = {
+      elements: JSON.parse(JSON.stringify(elements)),
+      canvasSettings: {
+        width: settings.width,
+        height: settings.height,
+        bgType: settings.bgType,
+        bgColor: settings.bgColor,
+        gradientStart: settings.gradientStart,
+        gradientEnd: settings.gradientEnd,
+        gradientAngle: settings.gradientAngle,
+      },
+    };
+
+    historyRef.current.past.push(currentState);
+    if (historyRef.current.past.length > 50) {
+      historyRef.current.past.shift();
+    }
+    historyRef.current.future = [];
+    setHistoryVersion((v) => v + 1);
+    setSaveStatus('unsaved');
+  }, [elements, settings]);
+
+  // Undo / Redo
+  const handleUndo = useCallback(() => {
+    if (historyRef.current.past.length === 0) return;
+    const previous = historyRef.current.past.pop()!;
+    const current: HistoryState = {
+      elements: JSON.parse(JSON.stringify(elements)),
+      canvasSettings: {
+        width: settings.width,
+        height: settings.height,
+        bgType: settings.bgType,
+        bgColor: settings.bgColor,
+        gradientStart: settings.gradientStart,
+        gradientEnd: settings.gradientEnd,
+        gradientAngle: settings.gradientAngle,
+      },
+    };
+    historyRef.current.future.push(current);
+
+    setElements(previous.elements);
+    setSettings((s) => ({ ...s, ...previous.canvasSettings }));
+    setSelectedIds([]);
+    setHistoryVersion((v) => v + 1);
+  }, [elements, settings]);
+
+  const handleRedo = useCallback(() => {
+    if (historyRef.current.future.length === 0) return;
+    const next = historyRef.current.future.pop()!;
+    const current: HistoryState = {
+      elements: JSON.parse(JSON.stringify(elements)),
+      canvasSettings: {
+        width: settings.width,
+        height: settings.height,
+        bgType: settings.bgType,
+        bgColor: settings.bgColor,
+        gradientStart: settings.gradientStart,
+        gradientEnd: settings.gradientEnd,
+        gradientAngle: settings.gradientAngle,
+      },
+    };
+    historyRef.current.past.push(current);
+
+    setElements(next.elements);
+    setSettings((s) => ({ ...s, ...next.canvasSettings }));
+    setSelectedIds([]);
+    setHistoryVersion((v) => v + 1);
+  }, [elements, settings]);
+
+  // Auto-fit zoom trigger delegating to container-aware calculation
+  const fitToScreen = useCallback(() => {
+    setFitTrigger((f) => f + 1);
+  }, []);
+
+  useEffect(() => {
+    fitToScreen();
+  }, [fitToScreen]);
+
+  // Autosave to LocalStorage
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        setSaveStatus('saving');
+        const projectData = {
+          settings,
+          elements,
+          brandKit,
+          savedAt: Date.now(),
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(projectData));
+        setSaveStatus('saved');
+      } catch (err) {
+        console.warn('Autosave quota:', err);
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [settings, elements, brandKit]);
+
+  // Add a new element
+  const handleAddElement = (partial: Partial<DesignElement>) => {
+    commitHistory();
+    const newId = `el-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+    const maxZ = elements.reduce((max, el) => Math.max(max, el.zIndex), 0);
+
+    // Center in canvas
+    const w = partial.width || 200;
+    const h = partial.height || 100;
+    const x = Math.round((settings.width - w) / 2);
+    const y = Math.round((settings.height - h) / 2);
+
+    const newElement: DesignElement = {
+      id: newId,
+      name: partial.name || `${partial.type || 'layer'} ${elements.length + 1}`,
+      type: partial.type || 'shape',
+      x: partial.x ?? x,
+      y: partial.y ?? y,
+      width: w,
+      height: h,
+      rotation: partial.rotation ?? 0,
+      opacity: partial.opacity ?? 1,
+      visible: true,
+      locked: false,
+      zIndex: maxZ + 1,
+      blendMode: partial.blendMode || 'normal',
+      ...partial,
+    };
+
+    setElements((prev) => [...prev, newElement]);
+    setSelectedIds([newId]);
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 text-white shadow-xl">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-red-600/20 border border-red-500/40 rounded-xl text-red-400">
-            <Palette className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-lg font-black tracking-tight flex items-center gap-2">
-              Design & Creative Studio Pro
-              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-600 text-white uppercase tracking-wider">
-                Visual Lab
-              </span>
-            </h1>
-            <p className="text-xs text-slate-400">
-              Color harmony generator, layered CSS box-shadow builder, and linear/mesh gradient studio.
-            </p>
-          </div>
-        </div>
+  // Update element properties
+  const handleUpdateElement = (id: string, updates: Partial<DesignElement>) => {
+    setElements((prev) =>
+      prev.map((el) => (el.id === id ? { ...el, ...updates } : el))
+    );
+  };
 
-        {/* Tab switcher */}
-        <div className="flex items-center gap-1.5 bg-slate-800 p-1.5 rounded-xl border border-slate-700 text-xs font-bold">
-          <button
-            type="button"
-            onClick={() => setActiveTab('palette')}
-            className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-              activeTab === 'palette' ? 'bg-red-600 text-white' : 'text-slate-300 hover:text-white'
-            }`}
-          >
-            Color Palette
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('shadow')}
-            className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-              activeTab === 'shadow' ? 'bg-red-600 text-white' : 'text-slate-300 hover:text-white'
-            }`}
-          >
-            CSS Box Shadow
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('gradient')}
-            className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-              activeTab === 'gradient' ? 'bg-red-600 text-white' : 'text-slate-300 hover:text-white'
-            }`}
-          >
-            CSS Gradient
-          </button>
-        </div>
+  // Delete element
+  const handleDeleteElement = (id: string) => {
+    commitHistory();
+    setElements((prev) => prev.filter((el) => el.id !== id));
+    setSelectedIds((prev) => prev.filter((selId) => selId !== id));
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.length === 0) return;
+    commitHistory();
+    setElements((prev) => prev.filter((el) => !selectedIds.includes(el.id)));
+    setSelectedIds([]);
+  };
+
+  // Duplicate element
+  const handleDuplicateElement = (id: string) => {
+    const original = elements.find((el) => el.id === id);
+    if (!original) return;
+    commitHistory();
+    const maxZ = elements.reduce((max, el) => Math.max(max, el.zIndex), 0);
+    const copy: DesignElement = {
+      ...JSON.parse(JSON.stringify(original)),
+      id: `el-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      name: `${original.name} (Copy)`,
+      x: original.x + 24,
+      y: original.y + 24,
+      zIndex: maxZ + 1,
+    };
+    setElements((prev) => [...prev, copy]);
+    setSelectedIds([copy.id]);
+  };
+
+  const handleDuplicateSelected = () => {
+    if (selectedIds.length === 0) return;
+    selectedIds.forEach((id) => handleDuplicateElement(id));
+  };
+
+  // Nudge element via arrows
+  const handleNudgeSelected = (dx: number, dy: number) => {
+    setElements((prev) =>
+      prev.map((el) => {
+        if (selectedIds.includes(el.id) && !el.locked) {
+          return { ...el, x: el.x + dx, y: el.y + dy };
+        }
+        return el;
+      })
+    );
+  };
+
+  // Reorder elements (Z-Index)
+  const handleReorderElement = (id: string, direction: 'up' | 'down' | 'top' | 'bottom') => {
+    commitHistory();
+    setElements((prev) => {
+      const sorted = [...prev].sort((a, b) => a.zIndex - b.zIndex);
+      const index = sorted.findIndex((el) => el.id === id);
+      if (index === -1) return prev;
+
+      if (direction === 'up' && index < sorted.length - 1) {
+        const temp = sorted[index].zIndex;
+        sorted[index].zIndex = sorted[index + 1].zIndex;
+        sorted[index + 1].zIndex = temp;
+      } else if (direction === 'down' && index > 0) {
+        const temp = sorted[index].zIndex;
+        sorted[index].zIndex = sorted[index - 1].zIndex;
+        sorted[index - 1].zIndex = temp;
+      } else if (direction === 'top') {
+        const maxZ = sorted[sorted.length - 1].zIndex;
+        sorted[index].zIndex = maxZ + 1;
+      } else if (direction === 'bottom') {
+        const minZ = sorted[0].zIndex;
+        sorted[index].zIndex = Math.max(0, minZ - 1);
+      }
+      return [...sorted];
+    });
+  };
+
+  // Load Template
+  const handleLoadTemplate = (template: DesignTemplate) => {
+    commitHistory();
+    setSettings((s) => ({
+      ...s,
+      name: template.name,
+      width: template.canvas.width,
+      height: template.canvas.height,
+      bgType: template.canvas.bgType,
+      bgColor: template.canvas.bgColor,
+      gradientStart: template.canvas.gradientStart,
+      gradientEnd: template.canvas.gradientEnd,
+      gradientAngle: template.canvas.gradientAngle,
+    }));
+    setElements(template.elements);
+    setSelectedIds([]);
+    fitToScreen();
+  };
+
+  // Add Freehand Drawing
+  const handleAddDrawingElement = (paths: DrawingPath[]) => {
+    commitHistory();
+    const newId = `draw-${Date.now()}`;
+    const maxZ = elements.reduce((max, el) => Math.max(max, el.zIndex), 0);
+
+    const newElement: DesignElement = {
+      id: newId,
+      name: `Drawing #${elements.filter((e) => e.type === 'drawing').length + 1}`,
+      type: 'drawing',
+      x: 0,
+      y: 0,
+      width: settings.width,
+      height: settings.height,
+      rotation: 0,
+      opacity: 1,
+      visible: true,
+      locked: false,
+      zIndex: maxZ + 1,
+      blendMode: 'normal',
+      drawingPaths: paths,
+    };
+
+    setElements((prev) => [...prev, newElement]);
+    setSelectedIds([newId]);
+  };
+
+  // Image File Upload handler
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const src = ev.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        // Fit within 60% of canvas dimensions
+        const maxW = settings.width * 0.6;
+        const maxH = settings.height * 0.6;
+        const ratio = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
+        const w = Math.round(img.naturalWidth * ratio);
+        const h = Math.round(img.naturalHeight * ratio);
+
+        handleAddElement({
+          type: 'image',
+          name: file.name.replace(/\.[^/.]+$/, ''),
+          imageSrc: src,
+          width: w,
+          height: h,
+          intrinsicWidth: img.naturalWidth,
+          intrinsicHeight: img.naturalHeight,
+        });
+      };
+      img.src = src;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // Apply Brand Palette to Document
+  const handleApplyBrandPalette = () => {
+    commitHistory();
+    setSettings((s) => ({
+      ...s,
+      bgType: 'gradient',
+      gradientStart: brandKit.neutralDark,
+      gradientEnd: brandKit.primaryColor,
+      gradientAngle: 135,
+    }));
+
+    // Update colors on existing elements
+    setElements((prev) =>
+      prev.map((el, i) => {
+        if (el.type === 'text') {
+          return {
+            ...el,
+            textColor: i === 0 ? brandKit.neutralLight : brandKit.accentColor,
+            fontFamily: brandKit.headingFont,
+          };
+        }
+        if (el.type === 'shape') {
+          return { ...el, fillColor: brandKit.secondaryColor };
+        }
+        return el;
+      })
+    );
+  };
+
+  // Active Audit Report
+  const auditReport = auditDesign(elements, settings);
+
+  const selectedElement = elements.find((el) => selectedIds.includes(el.id)) || null;
+
+  return (
+    <div
+      className={`w-full flex flex-col bg-slate-950 font-sans text-white select-none transition-all duration-150 ${
+        isFullscreen
+          ? 'fixed inset-0 z-50 w-screen h-screen h-[100dvh] rounded-none'
+          : 'h-[calc(100vh-6rem)] h-[calc(100dvh-6rem)] sm:h-[calc(100vh-5rem)] sm:h-[calc(100dvh-5rem)] min-h-[520px] sm:min-h-[640px] md:min-h-[750px] lg:min-h-[820px] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden'
+      }`}
+    >
+      {/* Hidden file uploader */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageUpload}
+        className="hidden"
+      />
+
+      {/* Top Application Bar */}
+      <TopBar
+        settings={settings}
+        onUpdateSettings={(updates) => {
+          commitHistory();
+          setSettings((s) => ({ ...s, ...updates }));
+        }}
+        canUndo={historyRef.current.past.length > 0}
+        canRedo={historyRef.current.future.length > 0}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onFitScreen={fitToScreen}
+        onResetZoom={() => setSettings((s) => ({ ...s, zoom: 1 }))}
+        onOpenAudit={() => setIsAuditOpen(true)}
+        onOpenMockup={() => setIsMockupOpen(true)}
+        onOpenAi={() => setIsAiOpen(true)}
+        onOpenExport={() => setIsExportOpen(true)}
+        onTriggerImport={() => fileInputRef.current?.click()}
+        auditScore={auditReport.overallScore}
+        saveStatus={saveStatus}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={() => {
+          setIsFullscreen((prev) => !prev);
+          setFitTrigger((f) => f + 1);
+        }}
+        isLeftPanelOpen={isLeftDrawerOpen}
+        onToggleLeftPanel={() => {
+          setIsLeftDrawerOpen((prev) => !prev);
+          setFitTrigger((f) => f + 1);
+        }}
+        isRightPanelOpen={isRightPanelOpen}
+        onToggleRightPanel={() => {
+          setIsRightPanelOpen((prev) => !prev);
+          setFitTrigger((f) => f + 1);
+        }}
+      />
+
+      {/* Center Studio Workspace */}
+      <div className="flex-1 flex overflow-hidden relative min-h-0 min-w-0 w-full">
+        {/* Left: Creative Asset & Presets Drawer */}
+        <Sidebar
+          activeTab={activeSidebarTab}
+          onSelectTab={(tab) => {
+            setActiveSidebarTab(tab);
+            setIsLeftDrawerOpen(true);
+          }}
+          onAddElement={handleAddElement}
+          onLoadTemplate={handleLoadTemplate}
+          canvasSettings={settings}
+          onUpdateCanvasSettings={(updates) => {
+            commitHistory();
+            setSettings((s) => ({ ...s, ...updates }));
+          }}
+          brandKit={brandKit}
+          onUpdateBrandKit={(updates) => setBrandKit((k) => ({ ...k, ...updates }))}
+          onApplyBrandPalette={handleApplyBrandPalette}
+          onTriggerImport={() => fileInputRef.current?.click()}
+          onOpenAi={() => setIsAiOpen(true)}
+          drawingTool={drawingTool}
+          onChangeDrawingTool={setDrawingTool}
+          drawColor={drawColor}
+          onChangeDrawColor={setDrawColor}
+          drawWidth={drawWidth}
+          onChangeDrawWidth={setDrawWidth}
+          isDrawingMode={isDrawingMode}
+          onToggleDrawingMode={() => setIsDrawingMode(!isDrawingMode)}
+          isDrawerOpen={isLeftDrawerOpen}
+          onToggleDrawer={(open) => {
+            setIsLeftDrawerOpen(open);
+            setFitTrigger((f) => f + 1);
+          }}
+          isMobileOpen={isMobileDrawerOpen}
+          onCloseMobile={() => setIsMobileDrawerOpen(false)}
+        />
+
+        {/* Center: Infinite Canvas Viewport */}
+        <CanvasViewport
+          elements={elements}
+          settings={settings}
+          selectedIds={selectedIds}
+          onSelectElement={(id, multi) => {
+            if (!id) {
+              setSelectedIds([]);
+            } else if (multi) {
+              setSelectedIds((prev) =>
+                prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+              );
+            } else {
+              setSelectedIds([id]);
+            }
+          }}
+          onUpdateElement={handleUpdateElement}
+          onCommitHistory={commitHistory}
+          onDeleteSelected={handleDeleteSelected}
+          onDuplicateSelected={handleDuplicateSelected}
+          onNudgeSelected={handleNudgeSelected}
+          isDrawingMode={isDrawingMode}
+          drawingTool={drawingTool}
+          drawColor={drawColor}
+          drawWidth={drawWidth}
+          onAddDrawingElement={handleAddDrawingElement}
+          onUpdateCanvasSettings={(updates) => setSettings((s) => ({ ...s, ...updates }))}
+          fitTrigger={fitTrigger}
+          onOpenInspector={() => setIsMobileInspectorOpen(true)}
+        />
+
+        {/* Right: Contextual Inspector & Layers Panel */}
+        <PropertiesPanel
+          selectedElement={selectedElement}
+          elements={elements}
+          onUpdateElement={(id, updates) => {
+            handleUpdateElement(id, updates);
+            setSaveStatus('unsaved');
+          }}
+          onDeleteElement={handleDeleteElement}
+          onDuplicateElement={handleDuplicateElement}
+          onReorderElement={handleReorderElement}
+          canvasSettings={settings}
+          onUpdateCanvasSettings={(updates) => {
+            commitHistory();
+            setSettings((s) => ({ ...s, ...updates }));
+          }}
+          onSelectElement={(id) => setSelectedIds([id])}
+          isOpen={isRightPanelOpen}
+          onClose={() => {
+            setIsRightPanelOpen(false);
+            setFitTrigger((f) => f + 1);
+          }}
+          isMobileOpen={isMobileInspectorOpen}
+          onCloseMobile={() => setIsMobileInspectorOpen(false)}
+        />
       </div>
 
-      {/* Main Tab Views */}
-      {activeTab === 'palette' && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6 text-slate-900">
-          <div className="flex items-center gap-4">
-            <input
-              type="color"
-              value={baseColor}
-              onChange={(e) => setBaseColor(e.target.value)}
-              className="w-14 h-14 rounded-xl border border-slate-200 cursor-pointer p-1"
-            />
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">Pick Primary Base Color</label>
-              <input
-                type="text"
-                value={baseColor}
-                onChange={(e) => setBaseColor(e.target.value)}
-                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold"
-              />
-            </div>
-          </div>
+      {/* Mobile Bottom Toolbar (< 1024px) */}
+      <div className="lg:hidden flex items-center justify-around h-14 bg-slate-950/95 border-t border-slate-800/90 px-1 shrink-0 z-30 pb-[env(safe-area-inset-bottom)]">
+        <button
+          type="button"
+          onClick={() => {
+            setActiveSidebarTab('templates');
+            setIsMobileDrawerOpen(true);
+          }}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors cursor-pointer ${
+            isMobileDrawerOpen && activeSidebarTab === 'templates'
+              ? 'text-red-400 font-bold'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <LayoutTemplate className="w-4 h-4" />
+          <span className="text-[9px] mt-0.5">Templates</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveSidebarTab('text');
+            setIsMobileDrawerOpen(true);
+          }}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors cursor-pointer ${
+            isMobileDrawerOpen && activeSidebarTab === 'text'
+              ? 'text-red-400 font-bold'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Type className="w-4 h-4" />
+          <span className="text-[9px] mt-0.5">Text</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveSidebarTab('shapes');
+            setIsMobileDrawerOpen(true);
+          }}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors cursor-pointer ${
+            isMobileDrawerOpen && activeSidebarTab === 'shapes'
+              ? 'text-red-400 font-bold'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Square className="w-4 h-4" />
+          <span className="text-[9px] mt-0.5">Shapes</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsDrawingMode(!isDrawingMode)}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors cursor-pointer ${
+            isDrawingMode ? 'text-red-500 font-bold' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <PenTool className="w-4 h-4" />
+          <span className="text-[9px] mt-0.5">Draw</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveSidebarTab('images');
+            setIsMobileDrawerOpen(true);
+          }}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors cursor-pointer ${
+            isMobileDrawerOpen && activeSidebarTab === 'images'
+              ? 'text-red-400 font-bold'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <ImageIcon className="w-4 h-4" />
+          <span className="text-[9px] mt-0.5">Images</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsMobileInspectorOpen((prev) => !prev)}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors cursor-pointer ${
+            selectedElement ? 'text-red-400 font-bold' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Sliders className="w-4 h-4" />
+          <span className="text-[9px] mt-0.5">Inspect</span>
+        </button>
+      </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-            {palettes.map((p) => (
-              <div
-                key={p.name}
-                onClick={() => handleCopy(p.hex)}
-                className="rounded-2xl p-4 flex flex-col justify-between h-36 border border-slate-200 cursor-pointer transition-transform hover:scale-105 shadow-xs"
-                style={{ backgroundColor: p.hex }}
-              >
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-black/20 text-white w-fit">
-                  {p.name}
-                </span>
-                <span className="text-xs font-mono font-bold text-white drop-shadow-md">{p.hex}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* MODALS */}
+      <ExportModal
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        elements={elements}
+        settings={settings}
+      />
 
-      {activeTab === 'shadow' && (
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-          <div className="md:col-span-6 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 text-slate-900">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-2">
-              Box Shadow Parameters
-            </h3>
+      <DesignAuditModal
+        isOpen={isAuditOpen}
+        onClose={() => setIsAuditOpen(false)}
+        report={auditReport}
+        onHighlightElement={(id) => setSelectedIds([id])}
+      />
 
-            <div>
-              <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                <span>Offset Y</span>
-                <span className="font-mono">{shadowY}px</span>
-              </div>
-              <input
-                type="range"
-                min={-50}
-                max={50}
-                value={shadowY}
-                onChange={(e) => setShadowY(Number(e.target.value))}
-                className="w-full accent-red-600"
-              />
-            </div>
+      <MockupModal
+        isOpen={isMockupOpen}
+        onClose={() => setIsMockupOpen(false)}
+        elements={elements}
+        settings={settings}
+      />
 
-            <div>
-              <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                <span>Blur Radius</span>
-                <span className="font-mono">{shadowBlur}px</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={shadowBlur}
-                onChange={(e) => setShadowBlur(Number(e.target.value))}
-                className="w-full accent-red-600"
-              />
-            </div>
-
-            <div>
-              <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                <span>Spread</span>
-                <span className="font-mono">{shadowSpread}px</span>
-              </div>
-              <input
-                type="range"
-                min={-30}
-                max={30}
-                value={shadowSpread}
-                onChange={(e) => setShadowSpread(Number(e.target.value))}
-                className="w-full accent-red-600"
-              />
-            </div>
-
-            <div>
-              <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                <span>Opacity</span>
-                <span className="font-mono">{Math.round(shadowOpacity * 100)}%</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={shadowOpacity}
-                onChange={(e) => setShadowOpacity(Number(e.target.value))}
-                className="w-full accent-red-600"
-              />
-            </div>
-          </div>
-
-          <div className="md:col-span-6 space-y-4">
-            <div className="bg-slate-100 rounded-2xl p-12 flex items-center justify-center min-h-[260px] border border-slate-200">
-              <div
-                className="w-44 h-44 bg-white rounded-2xl flex items-center justify-center font-bold text-slate-700 text-xs"
-                style={{
-                  boxShadow: `${shadowX}px ${shadowY}px ${shadowBlur}px ${shadowSpread}px rgba(0, 0, 0, ${shadowOpacity})`,
-                }}
-              >
-                Preview Box
-              </div>
-            </div>
-
-            <div className="p-4 bg-slate-900 rounded-xl text-white flex items-center justify-between">
-              <code className="text-xs font-mono text-emerald-400 truncate pr-2">{cssShadowCode}</code>
-              <button
-                type="button"
-                onClick={() => handleCopy(cssShadowCode)}
-                className="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded-lg text-xs font-bold transition-colors shrink-0 cursor-pointer"
-              >
-                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? 'Copied' : 'Copy CSS'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'gradient' && (
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-          <div className="md:col-span-6 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 text-slate-900">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-2">
-              Linear Gradient Generator
-            </h3>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Color 1</label>
-                <input
-                  type="color"
-                  value={gradColor1}
-                  onChange={(e) => setGradColor1(e.target.value)}
-                  className="w-full h-10 rounded-xl border border-slate-200 cursor-pointer p-1"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Color 2</label>
-                <input
-                  type="color"
-                  value={gradColor2}
-                  onChange={(e) => setGradColor2(e.target.value)}
-                  className="w-full h-10 rounded-xl border border-slate-200 cursor-pointer p-1"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                <span>Angle</span>
-                <span className="font-mono">{gradAngle}°</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={360}
-                value={gradAngle}
-                onChange={(e) => setGradAngle(Number(e.target.value))}
-                className="w-full accent-red-600"
-              />
-            </div>
-          </div>
-
-          <div className="md:col-span-6 space-y-4">
-            <div
-              className="rounded-2xl h-56 border border-slate-200 shadow-md"
-              style={{
-                background: `linear-gradient(${gradAngle}deg, ${gradColor1}, ${gradColor2})`,
-              }}
-            />
-            <div className="p-4 bg-slate-900 rounded-xl text-white flex items-center justify-between">
-              <code className="text-xs font-mono text-cyan-400 truncate pr-2">{cssGradientCode}</code>
-              <button
-                type="button"
-                onClick={() => handleCopy(cssGradientCode)}
-                className="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded-lg text-xs font-bold transition-colors shrink-0 cursor-pointer"
-              >
-                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? 'Copied' : 'Copy CSS'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AiStudioModal
+        isOpen={isAiOpen}
+        onClose={() => setIsAiOpen(false)}
+        onAddElement={handleAddElement}
+      />
     </div>
   );
 };
@@ -316,10 +719,24 @@ export const designStudioToolDef: ToolDefinition = {
   name: 'Design & Creative Studio Pro',
   category: 'design',
   subcategory: 'visual',
-  description: 'Color palette designer, CSS box shadow builder, and gradient creator for modern UI development.',
+  description:
+    'Full-featured professional graphic design studio with multi-layer canvas, typography, vector shapes, image filters, background removal, QR generator, design audit, and high-resolution multi-format exports.',
   iconName: 'Palette',
-  version: '2.0.0',
-  tags: ['design', 'palette', 'color', 'shadow', 'gradient', 'css', 'creative', 'studio'],
+  version: '3.0.0',
+  tags: [
+    'design',
+    'studio',
+    'graphics',
+    'social-media',
+    'poster',
+    'flyer',
+    'banner',
+    'typography',
+    'vector',
+    'qr-code',
+    'export',
+    'filters',
+  ],
   executionMode: 'client',
   supportsBatch: false,
   supportsWorkflow: false,
@@ -331,12 +748,12 @@ export const designStudioToolDef: ToolDefinition = {
     workerSupported: false,
     batchSupported: false,
     workflowSupported: false,
-    aiPowered: false,
+    aiPowered: true,
     offlineReady: true,
     requiresKey: false,
   },
   customWorkspace: DesignStudioWorkspace,
   execute: async () => {
-    return { success: true, text: 'Design Studio Ready' };
+    return { success: true, text: 'Design & Creative Studio Pro Active' };
   },
 };

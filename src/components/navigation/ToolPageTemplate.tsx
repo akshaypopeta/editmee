@@ -6,6 +6,7 @@ import { BackButton } from './BackButton';
 import { Footer } from '../common/Footer';
 import { storageEngine } from '../../core/storage-engine/StorageEngine';
 import { toolRegistry } from '../../core/tool-registry/ToolRegistry';
+import { getToolCanonicalPath } from '../../core/routing/toolUrls';
 import { LegalPageId } from '../common/LegalPages';
 import {
   Star,
@@ -312,21 +313,27 @@ export const ToolPageTemplate: React.FC<ToolPageTemplateProps> = ({
             <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xs">
               <div className="flex items-center justify-between mb-4 sm:mb-5">
                 <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Related {categoryLabel}</h2>
-                <button
-                  type="button"
-                  onClick={() => onNavigateCategory(tool.category)}
+                <a
+                  href={`/category/${tool.category.toLowerCase()}/`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigateCategory(tool.category);
+                  }}
                   className="text-xs font-semibold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 flex items-center gap-1 cursor-pointer"
                 >
                   View all in category →
-                </button>
+                </a>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                 {relatedTools.map((rt) => (
-                  <button
+                  <a
                     key={rt.id}
-                    type="button"
-                    onClick={() => onSelectTool(rt.id)}
-                    className="p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-red-500 dark:hover:border-red-500/60 hover:bg-white dark:hover:bg-slate-900 transition-all text-left group cursor-pointer flex flex-col justify-between min-h-[7rem] touch-manipulation shadow-xs"
+                    href={getToolCanonicalPath(rt.id)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onSelectTool(rt.id);
+                    }}
+                    className="p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-red-500 dark:hover:border-red-500/60 hover:bg-white dark:hover:bg-slate-900 transition-all text-left group cursor-pointer flex flex-col justify-between min-h-[7rem] touch-manipulation shadow-xs block"
                   >
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
@@ -342,7 +349,7 @@ export const ToolPageTemplate: React.FC<ToolPageTemplateProps> = ({
                     <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-tight mt-1">
                       {rt.description}
                     </p>
-                  </button>
+                  </a>
                 ))}
               </div>
             </section>

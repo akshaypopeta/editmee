@@ -1,45 +1,37 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   FileText,
   Image as ImageIcon,
-  Code,
-  Database,
-  Calculator,
-  Receipt,
-  FileCheck,
-  Search,
-  Sliders,
-  History,
-  Workflow,
   Sparkles,
+  Workflow,
+  History,
   Star,
-  Play,
+  Search,
   ArrowRight,
-  TrendingUp,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  BarChart3,
+  ExternalLink,
+  Shield,
   Layers,
   ChevronRight,
-  RefreshCw,
-  Plus,
-  Shield,
-  Download,
   Trash2,
+  Lock,
   Cpu,
-  PenTool,
-  FileSearch,
-  Wand2,
+  RefreshCw,
+  Home,
+  CheckCircle2,
+  FileCheck,
+  Database,
+  Code,
+  Zap,
 } from 'lucide-react';
 
 import { toolRegistry } from './core/tool-registry/ToolRegistry';
 import { registerAllTools } from './core/tool-registry/registerAllTools';
+import {
+  initToolUrlMappings,
+  resolveToolFromPath,
+  resolveToolFromSlug,
+  getToolCanonicalPath,
+} from './core/routing/toolUrls';
 import { storageEngine, HistoryItem } from './core/storage-engine/StorageEngine';
 import { taskManager, ActiveTaskInfo } from './core/task-manager/TaskManager';
 import { TaskProtectionModal } from './components/common/TaskProtectionModal';
@@ -57,9 +49,20 @@ import { AutomatedPipelineWorkspace } from './components/workflow/AutomatedPipel
 import { ScrollToTop } from './components/navigation/ScrollToTop';
 import { BackButton } from './components/navigation/BackButton';
 import { navigationManager } from './core/navigation/NavigationManager';
+import { NotFoundPage } from './components/common/NotFoundPage';
 
-// Ensure all tools are registered at startup
-registerAllTools();
+// Ensure all tools are registered and slug mappings initialized safely at startup
+try {
+  registerAllTools();
+} catch (err) {
+  console.warn('[Startup] Tool registration completed with warnings:', err);
+}
+
+try {
+  initToolUrlMappings();
+} catch (err) {
+  console.warn('[Startup] Slug mappings initialized with warnings:', err);
+}
 
 const LEGAL_PATHS: Record<string, LegalPageId> = {
   '/privacy-policy': 'privacy-policy',
@@ -75,10 +78,32 @@ const LEGAL_PATHS: Record<string, LegalPageId> = {
   '/disclaimer': 'disclaimer',
 };
 
+const VALID_CATEGORIES = [
+  'all',
+  'pdf',
+  'images',
+  'documents',
+  'resumes',
+  'ai',
+  'data',
+  'developer',
+  'business',
+  'calculators',
+  'security',
+  'files',
+  'media',
+  'design',
+  'marketing',
+  'automation',
+  'productivity',
+];
+
 export default function App() {
   const [activeNav, setActiveNav] = useState<string>('overview');
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
   const [activeLegalPage, setActiveLegalPage] = useState<LegalPageId | null>(null);
+  const [isNotFound, setIsNotFound] = useState(false);
+  const [attemptedPath, setAttemptedPath] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
   const [selectedSubcategoryFilter, setSelectedSubcategoryFilter] = useState<string>('all');
@@ -96,106 +121,152 @@ export default function App() {
     return unsub;
   }, []);
 
-  // URL parsing helper
+  // URL parsing helper: maps browser URL to canonical route
   const parseCurrentUrl = useCallback(() => {
-    const path = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
-    const hash = window.location.hash.toLowerCase().replace(/^#/, '');
+    const rawPath = window.location.pathname.toLowerCase();
+    const rawHash = window.location.hash.toLowerCase().replace(/^#/, '');
 
-    // Check legal routes
-    if (LEGAL_PATHS[path]) {
-      setActiveLegalPage(LEGAL_PATHS[path]);
+    // 1. Check legal routes (e.g. /privacy-policy or /privacy-policy/)
+    const normalizedLegalPath = rawPath.replace(/\/$/, '') || '/';
+    if (LEGAL_PATHS[normalizedLegalPath]) {
+      setActiveLegalPage(LEGAL_PATHS[normalizedLegalPath]);
       setActiveToolId(null);
+      setIsNotFound(false);
       return;
     }
-    if (LEGAL_PATHS['/' + hash]) {
-      setActiveLegalPage(LEGAL_PATHS['/' + hash]);
+    const normalizedHash = ('/' + rawHash).replace(/\/$/, '');
+    if (LEGAL_PATHS[normalizedHash]) {
+      setActiveLegalPage(LEGAL_PATHS[normalizedHash]);
       setActiveToolId(null);
+      setIsNotFound(false);
       return;
     }
 
-    // Check tool routes: /tool/:id or /tools/:id or #tool-:id
-    const toolMatch = path.match(/^\/(?:tools?|suite)\/([a-zA-Z0-9_-]+)$/);
-    if (toolMatch && toolMatch[1]) {
-      const tid = toolMatch[1];
-      const foundTool = toolRegistry.get(tid);
-      if (foundTool) {
-        setActiveToolId(foundTool.id);
+    // 2. Check tool routes: /tools/:slug/, /tools/:slug, /tool/:id/, /suite/:id
+    if (rawPath.startsWith('/tool/') || rawPath.startsWith('/tools/') || rawPath.startsWith('/suite/')) {
+      const resolved = resolveToolFromPath(rawPath);
+      if (resolved && resolved.tool) {
+        setActiveToolId(resolved.tool.id);
         setActiveLegalPage(null);
-        if (foundTool.id !== tid) {
-          window.history.replaceState({}, '', `/tool/${foundTool.id}`);
+        setIsNotFound(false);
+        // Canonicalize URL in address bar if legacy format was accessed
+        if (!resolved.isCanonical) {
+          try {
+            window.history.replaceState(null, '', resolved.canonicalPath);
+          } catch {}
         }
+        return;
+      } else {
+        // Unknown tool slug - genuine 404
+        setIsNotFound(true);
+        setAttemptedPath(window.location.pathname);
+        setActiveToolId(null);
+        setActiveLegalPage(null);
         return;
       }
     }
-    if (hash.startsWith('tool/')) {
-      const tid = hash.replace('tool/', '');
-      const foundTool = toolRegistry.get(tid);
-      if (foundTool) {
-        setActiveToolId(foundTool.id);
+
+    // Hash-based tool route support (e.g. #tool/edit-pdf or #tools/merge-pdf)
+    if (rawHash.startsWith('tool/') || rawHash.startsWith('tools/')) {
+      const slugOrId = rawHash.replace(/^(?:tools?\/)/, '').replace(/\/$/, '');
+      const tool = resolveToolFromSlug(slugOrId);
+      if (tool) {
+        const canonical = getToolCanonicalPath(tool.id);
+        setActiveToolId(tool.id);
         setActiveLegalPage(null);
-        if (foundTool.id !== tid) {
-          window.history.replaceState({}, '', `/tool/${foundTool.id}`);
-        }
+        setIsNotFound(false);
+        try {
+          window.history.replaceState(null, '', canonical);
+        } catch {}
         return;
       }
     }
 
-    // Check category routes: /category/:id
-    const catMatch = path.match(/^\/category\/([a-zA-Z0-9_-]+)$/);
+    // 3. Category routes: /category/:id/ or /category/:id
+    const catMatch = rawPath.match(/^\/category\/([a-zA-Z0-9_-]+)\/?$/);
     if (catMatch && catMatch[1]) {
-      setSelectedCategoryFilter(catMatch[1]);
-      setActiveNav(catMatch[1]);
-      setActiveToolId(null);
-      setActiveLegalPage(null);
-      return;
+      const catId = catMatch[1].toLowerCase();
+      if (VALID_CATEGORIES.includes(catId)) {
+        setSelectedCategoryFilter(catId);
+        setActiveNav(catId === 'all' ? 'overview' : catId);
+        setActiveToolId(null);
+        setActiveLegalPage(null);
+        setIsNotFound(false);
+        if (!rawPath.endsWith('/')) {
+          try {
+            window.history.replaceState(null, '', `/category/${catId}/`);
+          } catch {}
+        }
+        return;
+      } else {
+        setIsNotFound(true);
+        setAttemptedPath(window.location.pathname);
+        setActiveToolId(null);
+        setActiveLegalPage(null);
+        return;
+      }
     }
 
-    if (path === '/workflows' || hash === 'workflows') {
+    // 4. Workflows & History routes
+    const pathNoSlash = rawPath.replace(/\/$/, '') || '/';
+    if (pathNoSlash === '/workflows' || rawHash === 'workflows') {
       setActiveNav('workflows');
       setActiveToolId(null);
       setActiveLegalPage(null);
+      setIsNotFound(false);
+      if (!rawPath.endsWith('/')) {
+        try {
+          window.history.replaceState(null, '', '/workflows/');
+        } catch {}
+      }
       return;
     }
 
-    if (path === '/history' || hash === 'history') {
+    if (pathNoSlash === '/history' || rawHash === 'history') {
       setActiveNav('history');
       setActiveToolId(null);
       setActiveLegalPage(null);
+      setIsNotFound(false);
+      if (!rawPath.endsWith('/')) {
+        try {
+          window.history.replaceState(null, '', '/history/');
+        } catch {}
+      }
       return;
     }
 
-    if (path === '/all-tools' || hash === 'all-tools') {
+    if (pathNoSlash === '/all-tools' || rawHash === 'all-tools') {
       setActiveNav('overview');
       setSelectedCategoryFilter('all');
       setActiveToolId(null);
       setActiveLegalPage(null);
+      setIsNotFound(false);
+      try {
+        window.history.replaceState(null, '', '/');
+      } catch {}
       return;
     }
 
-    // Default home overview
-    setActiveLegalPage(null);
+    // 5. Root Homepage
+    if (pathNoSlash === '/' || pathNoSlash === '') {
+      setActiveLegalPage(null);
+      setActiveToolId(null);
+      setIsNotFound(false);
+      return;
+    }
+
+    // 6. Unknown path -> 404 Not Found
+    setIsNotFound(true);
+    setAttemptedPath(window.location.pathname);
     setActiveToolId(null);
+    setActiveLegalPage(null);
   }, []);
 
-  // Initial load and history popstate
+  // Initialize and handle popstate
   useEffect(() => {
     parseCurrentUrl();
 
     const handlePopState = () => {
-      const curTask = taskManager.getActiveTask();
-      if (curTask && (curTask.isProcessing || curTask.hasUnsavedData)) {
-        // Revert URL hash/path to current active tool so user doesn't jump prematurely
-        if (activeToolId) {
-          try {
-            window.history.pushState(null, '', `/tool/${activeToolId}`);
-          } catch {}
-        }
-        setPendingNavigation({
-          action: () => parseCurrentUrl(),
-          description: 'Previous Page / History',
-        });
-        return;
-      }
       parseCurrentUrl();
     };
 
@@ -216,8 +287,13 @@ export default function App() {
     };
   }, [parseCurrentUrl]);
 
-  // Synchronize SEO & document title whenever active route changes
+  // Synchronize SEO, structured data, canonical tags & document title whenever active route changes
   useEffect(() => {
+    if (isNotFound) {
+      SeoManager.updateDocumentHead(SeoManager.getNotFoundSeoMetadata(attemptedPath));
+      return;
+    }
+
     if (activeLegalPage) {
       // Handled inside LegalPages component via SeoManager
       return;
@@ -226,12 +302,7 @@ export default function App() {
     if (activeToolId) {
       const tool = toolRegistry.get(activeToolId);
       if (tool) {
-        SeoManager.updateDocumentHead({
-          title: `${tool.name} — Free Online Tool | EditMee`,
-          description: tool.description,
-          keywords: `${tool.name}, ${tool.category} online tool, free ${tool.name}, browser tool, client-side, EditMee`,
-          canonicalPath: `/tool/${tool.id}`,
-        });
+        SeoManager.updateDocumentHead(SeoManager.getToolSeoMetadata(tool));
       }
       return;
     }
@@ -239,8 +310,8 @@ export default function App() {
     if (activeNav === 'workflows') {
       SeoManager.updateDocumentHead({
         title: 'Automated Document Pipelines & Workflows | EditMee',
-        description: 'Chains multi-stage PDF and document conversion, watermarking, and compression pipelines entirely in browser.',
-        canonicalPath: '/workflows',
+        description: 'Chains multi-stage PDF and document conversion, watermarking, and compression pipelines entirely in browser with zero server data leakage.',
+        canonicalPath: '/workflows/',
       });
       return;
     }
@@ -248,28 +319,19 @@ export default function App() {
     if (activeNav === 'history') {
       SeoManager.updateDocumentHead({
         title: 'Task Execution Audit History | EditMee',
-        description: 'Local audit trail of all processed documents, images, and data exports. Never uploaded to servers.',
-        canonicalPath: '/history',
+        description: 'Local audit trail of all processed documents, images, and data exports. Stored privately on your device and never uploaded to servers.',
+        canonicalPath: '/history/',
       });
       return;
     }
 
     // Home / Category Overview
     if (selectedCategoryFilter !== 'all') {
-      const catName = selectedCategoryFilter.toUpperCase();
-      SeoManager.updateDocumentHead({
-        title: `${catName} Tools & Utilities — EditMee`,
-        description: `Explore all high-performance ${catName} online utilities. 100% free, private, client-side document and media processing.`,
-        canonicalPath: `/category/${selectedCategoryFilter}`,
-      });
+      SeoManager.updateDocumentHead(SeoManager.getCategorySeoMetadata(selectedCategoryFilter));
     } else {
-      SeoManager.updateDocumentHead({
-        title: 'EditMee — Free Online PDF, Image, Document & AI Tools',
-        description: 'Universal suite of client-side browser tools. Edit PDFs, convert images, build ATS resumes, transform CSVs, format code, and execute AI workflows with 100% privacy.',
-        canonicalPath: '/',
-      });
+      SeoManager.updateDocumentHead(SeoManager.DEFAULT_APP_METADATA);
     }
-  }, [activeLegalPage, activeToolId, activeNav, selectedCategoryFilter]);
+  }, [isNotFound, attemptedPath, activeLegalPage, activeToolId, activeNav, selectedCategoryFilter]);
 
   // Global keyboard shortcuts and custom tool open events
   useEffect(() => {
@@ -363,37 +425,42 @@ export default function App() {
   // Handle direct tool launch with active task guard
   const doLaunchTool = (toolId: string) => {
     setActiveLegalPage(null);
+    setIsNotFound(false);
     setActiveToolId(toolId);
     const targetTool = toolRegistry.get(toolId);
+    const canonicalPath = getToolCanonicalPath(toolId);
     navigationManager.recordNavigation({
-      path: `/tool/${toolId}`,
+      path: canonicalPath,
       type: 'tool',
       id: toolId,
       name: targetTool ? targetTool.name : toolId,
     });
     try {
-      window.history.pushState(null, '', `/tool/${toolId}`);
+      window.history.pushState(null, '', canonicalPath);
     } catch {}
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const doOpenLegalPage = (pageId: LegalPageId) => {
     setActiveToolId(null);
+    setIsNotFound(false);
     setActiveLegalPage(pageId);
+    const canonicalPath = `/${pageId}/`;
     navigationManager.recordNavigation({
-      path: `/${pageId}`,
+      path: canonicalPath,
       type: 'legal',
       id: pageId,
       name: pageId.replace(/-/g, ' ').toUpperCase(),
     });
     try {
-      window.history.pushState(null, '', `/${pageId}`);
+      window.history.pushState(null, '', canonicalPath);
     } catch {}
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const doHandleNavClick = (nav: string) => {
     setActiveLegalPage(null);
+    setIsNotFound(false);
     setActiveNav(nav);
     setSelectedSubcategoryFilter('all');
     if (nav === 'overview') {
@@ -412,52 +479,55 @@ export default function App() {
     } else if (nav === 'workflows') {
       setActiveToolId(null);
       navigationManager.recordNavigation({
-        path: '/workflows',
+        path: '/workflows/',
         type: 'workflows',
         name: 'Workflows',
       });
       try {
-        window.history.pushState(null, '', '/workflows');
+        window.history.pushState(null, '', '/workflows/');
       } catch {}
     } else if (nav === 'history') {
       setActiveToolId(null);
       navigationManager.recordNavigation({
-        path: '/history',
+        path: '/history/',
         type: 'history',
         name: 'History',
       });
       try {
-        window.history.pushState(null, '', '/history');
+        window.history.pushState(null, '', '/history/');
       } catch {}
     } else {
       setSelectedCategoryFilter(nav);
       setActiveToolId(null);
+      const canonicalPath = `/category/${nav}/`;
       navigationManager.recordNavigation({
-        path: `/category/${nav}`,
+        path: canonicalPath,
         type: 'category',
         id: nav,
         name: `${nav.toUpperCase()} Tools`,
       });
       try {
-        window.history.pushState(null, '', `/category/${nav}`);
+        window.history.pushState(null, '', canonicalPath);
       } catch {}
     }
   };
 
   const doCategoryFilterSelect = (catId: string, subcatId: string = 'all') => {
     setActiveLegalPage(null);
+    setIsNotFound(false);
     setSelectedCategoryFilter(catId);
     setSelectedSubcategoryFilter(subcatId);
     setActiveNav(catId === 'all' ? 'overview' : catId);
     setActiveToolId(null);
+    const canonicalPath = catId === 'all' ? '/' : `/category/${catId}/`;
     navigationManager.recordNavigation({
-      path: catId === 'all' ? '/' : `/category/${catId}`,
+      path: canonicalPath,
       type: catId === 'all' ? 'home' : 'category',
       id: catId,
       name: catId === 'all' ? 'Home & Directory' : `${catId.toUpperCase()} Tools`,
     });
     try {
-      window.history.pushState(null, '', catId === 'all' ? '/' : `/category/${catId}`);
+      window.history.pushState(null, '', canonicalPath);
     } catch {}
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -494,18 +564,45 @@ export default function App() {
     );
   };
 
+  const handleConfirmLeave = () => {
+    if (pendingNavigation) {
+      const { action } = pendingNavigation;
+      taskManager.clearTask();
+      setPendingNavigation(null);
+      action();
+    }
+  };
+
+  const handleCancelLeave = () => {
+    setPendingNavigation(null);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-red-600 selection:text-white">
-      {/* Mobile Sidebar Backdrop */}
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-red-600 selection:text-white">
+      {/* Scroll to Top helper on route changes */}
+      <ScrollToTop />
+
+      {/* Task Protection Guard Modal */}
+      {pendingNavigation && activeTask && (
+        <TaskProtectionModal
+          activeTask={activeTask}
+          targetDescription={pendingNavigation.description}
+          onConfirmStopAndProceed={handleConfirmLeave}
+          onCancel={handleCancelLeave}
+        />
+      )}
+
+      {/* Mobile Sidebar Backdrop Overlay */}
       {mobileSidebarOpen && (
         <div
           onClick={() => setMobileSidebarOpen(false)}
-          className="fixed inset-0 bg-slate-950/80 z-30 lg:hidden backdrop-blur-xs"
+          className="fixed inset-0 bg-slate-950/80 z-40 lg:hidden backdrop-blur-xs transition-opacity"
+          aria-hidden="true"
         />
       )}
 
       <div className="flex flex-1 min-h-screen">
-        {/* Sidebar Navigation (Dark Shell) */}
+        {/* Sidebar Navigation */}
         <SidebarNav
           activeNav={activeNav}
           activeToolId={activeToolId}
@@ -520,7 +617,7 @@ export default function App() {
 
         {/* Main Layout Area */}
         <div className="flex-1 lg:pl-72 flex flex-col min-h-screen w-full min-w-0">
-          {/* Header Bar (Dark Shell) */}
+          {/* Header Bar */}
           <HeaderNav
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
@@ -532,7 +629,16 @@ export default function App() {
 
           {/* Content Area */}
           <main className="flex-1 w-full min-w-0">
-            {activeLegalPage ? (
+            {isNotFound ? (
+              <NotFoundPage
+                attemptedPath={attemptedPath}
+                onNavigateHome={() => {
+                  setIsNotFound(false);
+                  handleNavClick('overview');
+                }}
+                onSelectTool={launchTool}
+              />
+            ) : activeLegalPage ? (
               <LegalPages
                 pageId={activeLegalPage}
                 onNavigate={(pageId) => openLegalPage(pageId)}
@@ -556,43 +662,32 @@ export default function App() {
               >
                 <ToolShell
                   tool={currentActiveTool}
-                  onNavigateHome={() => {
-                    setActiveToolId(null);
-                    setActiveNav('overview');
-                    setSelectedCategoryFilter('all');
-                    try {
-                      window.history.pushState(null, '', '/');
-                    } catch {}
-                  }}
-                  onNavigateCategory={(cat) => handleCategoryFilterSelect(cat)}
+                  onNavigateHome={() => handleNavClick('overview')}
+                  onNavigateCategory={handleCategoryFilterSelect}
                   onSelectTool={launchTool}
                   onOpenLegalPage={openLegalPage}
                 />
               </ErrorBoundary>
             ) : activeNav === 'workflows' ? (
-              /* Workflows View */
               <AutomatedPipelineWorkspace />
             ) : activeNav === 'history' ? (
-              /* Activity History View */
+              /* Activity History Panel */
               <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-                <div>
-                  <BackButton customLabel="Back" onFallback={() => handleNavClick('overview')} />
-                </div>
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-xs flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                      <History className="w-5 h-5 text-amber-500" />
-                      Task Execution History
+                    <h2 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                      <History className="w-6 h-6 text-red-500" />
+                      Activity & Task History
                     </h2>
-                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-                      Audit trail of all locally processed documents, images, and data exports.
+                    <p className="text-xs text-slate-400 mt-1">
+                      Audit records of all jobs processed locally in this browser. Never transmitted to external servers.
                     </p>
                   </div>
                   {historyItems.length > 0 && (
                     <button
                       type="button"
                       onClick={() => storageEngine.clearHistory()}
-                      className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                      className="px-3 py-1.5 rounded-xl border border-slate-700 text-slate-300 hover:text-red-400 hover:bg-slate-800 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       Clear History
@@ -600,35 +695,35 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xs overflow-hidden">
                   {historyItems.length === 0 ? (
                     <div className="py-16 text-center text-slate-500 text-sm">
                       No task history recorded yet. Execute any tool to generate records.
                     </div>
                   ) : (
-                    <div className="divide-y divide-slate-200 dark:divide-slate-800">
+                    <div className="divide-y divide-slate-800">
                       {historyItems.map((item) => (
                         <div
                           key={item.id}
-                          className="p-4 hover:bg-slate-50 dark:hover:bg-slate-850 transition-colors flex items-center justify-between gap-4"
+                          className="p-4 hover:bg-slate-850 transition-colors flex items-center justify-between gap-4"
                         >
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-slate-900 dark:text-white">
+                              <span className="text-sm font-bold text-white">
                                 {item.toolName}
                               </span>
-                              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-300">
                                 {item.category}
                               </span>
-                              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400">
+                              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-400">
                                 {item.status}
                               </span>
                             </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <p className="text-xs text-slate-400">
                               {item.outputSummary || item.outputFilename}
                             </p>
                           </div>
-                          <div className="text-right text-xs text-slate-400 dark:text-slate-500 font-medium">
+                          <div className="text-right text-xs text-slate-500 font-medium">
                             {new Date(item.timestamp).toLocaleString()}
                           </div>
                         </div>
@@ -642,10 +737,13 @@ export default function App() {
               <div className="max-w-7xl mx-auto p-3.5 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
                 {/* Flagship Production Suites Quick Launch Banner */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  <button
-                    type="button"
-                    onClick={() => launchTool('edit-pdf')}
-                    className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-red-500 dark:hover:border-red-500 hover:shadow-xl transition-all text-left group cursor-pointer shadow-xs touch-manipulation"
+                  <a
+                    href={getToolCanonicalPath('edit-pdf')}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      launchTool('edit-pdf');
+                    }}
+                    className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-red-500 dark:hover:border-red-500 hover:shadow-xl transition-all text-left group cursor-pointer shadow-xs touch-manipulation block"
                   >
                     <div className="w-11 h-11 rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-100 dark:border-red-900/60 text-red-600 dark:text-red-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                       <FileText className="w-5 h-5" />
@@ -656,12 +754,15 @@ export default function App() {
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
                       Edit text in-place, annotate, sign, merge, split, and export.
                     </p>
-                  </button>
+                  </a>
 
-                  <button
-                    type="button"
-                    onClick={() => launchTool('image-studio')}
-                    className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-xl transition-all text-left group cursor-pointer shadow-xs touch-manipulation"
+                  <a
+                    href={getToolCanonicalPath('image-studio')}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      launchTool('image-studio');
+                    }}
+                    className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-xl transition-all text-left group cursor-pointer shadow-xs touch-manipulation block"
                   >
                     <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                       <ImageIcon className="w-5 h-5" />
@@ -672,12 +773,15 @@ export default function App() {
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
                       Smart crop, canvas filters, WebP convert & compression.
                     </p>
-                  </button>
+                  </a>
 
-                  <button
-                    type="button"
-                    onClick={() => launchTool('resume-builder')}
-                    className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-xl transition-all text-left group cursor-pointer shadow-xs touch-manipulation"
+                  <a
+                    href={getToolCanonicalPath('resume-builder')}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      launchTool('resume-builder');
+                    }}
+                    className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-xl transition-all text-left group cursor-pointer shadow-xs touch-manipulation block"
                   >
                     <div className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-100 dark:border-amber-900/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                       <FileCheck className="w-5 h-5" />
@@ -688,12 +792,15 @@ export default function App() {
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
                       ATS-optimized CVs, executive formatting & PDF export.
                     </p>
-                  </button>
+                  </a>
 
-                  <button
-                    type="button"
-                    onClick={() => launchTool('csv-studio')}
-                    className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-purple-500 dark:hover:border-purple-500 hover:shadow-xl transition-all text-left group cursor-pointer shadow-xs touch-manipulation"
+                  <a
+                    href={getToolCanonicalPath('csv-studio')}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      launchTool('csv-studio');
+                    }}
+                    className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-purple-500 dark:hover:border-purple-500 hover:shadow-xl transition-all text-left group cursor-pointer shadow-xs touch-manipulation block"
                   >
                     <div className="w-11 h-11 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-100 dark:border-purple-900/60 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                       <Database className="w-5 h-5" />
@@ -704,39 +811,14 @@ export default function App() {
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
                       Table analytics, CSV cleaner, JSON/SQL conversion.
                     </p>
-                  </button>
+                  </a>
                 </div>
 
                 {/* Directory Filter & Tools Grid */}
-                <div className="space-y-5 pt-2">
-                  <div className="flex flex-col gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div>
-                        <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
-                          Universal Tool Directory
-                        </h2>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          100% Client-Side Processing • Zero Server Uploads
-                        </p>
-                      </div>
-
-                      {/* Search Bar in Directory */}
-                      {searchQuery && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-500 dark:text-slate-400">Search: &ldquo;{searchQuery}&rdquo;</span>
-                          <button
-                            type="button"
-                            onClick={() => setSearchQuery('')}
-                            className="text-xs text-red-600 dark:text-red-400 hover:underline cursor-pointer"
-                          >
-                            Clear
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Category Pills Filter */}
-                    <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    {/* Main Categories Row */}
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                       {[
                         { id: 'all', label: 'All Tools' },
                         { id: 'pdf', label: 'PDF' },
@@ -755,20 +837,26 @@ export default function App() {
                         { id: 'marketing', label: 'Marketing' },
                         { id: 'automation', label: 'Automation' },
                         { id: 'productivity', label: 'Productivity' },
-                      ].map((cat) => (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => handleCategoryFilterSelect(cat.id, 'all')}
-                          className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                            selectedCategoryFilter === cat.id
-                              ? 'bg-red-600 text-white shadow-md'
-                              : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
-                          }`}
-                        >
-                          {cat.label}
-                        </button>
-                      ))}
+                      ].map((cat) => {
+                        const href = cat.id === 'all' ? '/' : `/category/${cat.id}/`;
+                        return (
+                          <a
+                            key={cat.id}
+                            href={href}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleCategoryFilterSelect(cat.id, 'all');
+                            }}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer inline-block ${
+                              selectedCategoryFilter === cat.id
+                                ? 'bg-red-600 text-white shadow-md'
+                                : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                            }`}
+                          >
+                            {cat.label}
+                          </a>
+                        );
+                      })}
                     </div>
 
                     {/* Subcategories Row if a specific category is selected and has subcategories */}
@@ -810,6 +898,8 @@ export default function App() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
                     {filteredTools.map((tool) => {
                       const isFav = favorites.includes(tool.id);
+                      const toolCanonicalUrl = getToolCanonicalPath(tool.id);
+
                       return (
                         <div
                           key={tool.id}
@@ -818,9 +908,16 @@ export default function App() {
                           <div className="space-y-2">
                             <div className="flex items-start justify-between">
                               <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-950/70 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300">
+                                <a
+                                  href={`/category/${tool.category.toLowerCase()}/`}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handleCategoryFilterSelect(tool.category, 'all');
+                                  }}
+                                  className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-950/70 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 transition-colors"
+                                >
                                   {tool.category}
-                                </span>
+                                </a>
                                 {tool.capabilities.aiPowered && (
                                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">
                                     AI
@@ -843,9 +940,16 @@ export default function App() {
                             </div>
 
                             <div>
-                              <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
+                              <a
+                                href={toolCanonicalUrl}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  launchTool(tool.id);
+                                }}
+                                className="font-bold text-slate-900 dark:text-white text-sm sm:text-base group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors block"
+                              >
                                 {tool.name}
-                              </h3>
+                              </a>
                               <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
                                 {tool.description}
                               </p>
@@ -861,13 +965,16 @@ export default function App() {
                               ))}
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => launchTool(tool.id)}
+                            <a
+                              href={toolCanonicalUrl}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                launchTool(tool.id);
+                              }}
                               className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs touch-manipulation shrink-0 min-h-[36px]"
                             >
                               Open Tool <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
+                            </a>
                           </div>
                         </div>
                       );
@@ -878,7 +985,7 @@ export default function App() {
             )}
           </main>
 
-          {/* Global Footer (shown on overview / pipelines / history / legal pages) */}
+          {/* Global Footer (shown on overview / pipelines / history / legal pages / 404) */}
           {!currentActiveTool && (
             <Footer
               onNavigateCategory={handleCategoryFilterSelect}
@@ -889,24 +996,6 @@ export default function App() {
           )}
         </div>
       </div>
-
-      {/* Cross-Tool Task Protection Modal */}
-      {pendingNavigation && activeTask && (
-        <TaskProtectionModal
-          activeTask={activeTask}
-          targetDescription={pendingNavigation.description}
-          onCancel={() => setPendingNavigation(null)}
-          onConfirmStopAndProceed={() => {
-            taskManager.abortActiveTask();
-            const nextAction = pendingNavigation.action;
-            setPendingNavigation(null);
-            nextAction();
-          }}
-        />
-      )}
-
-      {/* Global Scroll-to-Top Button */}
-      <ScrollToTop />
     </div>
   );
 }

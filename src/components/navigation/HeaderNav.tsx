@@ -59,16 +59,19 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             <Menu className="w-5 h-5" />
           </button>
 
-          <button
-            type="button"
-            onClick={() => onSelectNav('overview')}
+          <a
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              onSelectNav('overview');
+            }}
             className="flex items-center gap-2 hover:opacity-90 transition-opacity cursor-pointer lg:hidden touch-manipulation"
           >
             <EditMeeLogo height={30} variant="mascot" />
             <span className="text-lg sm:text-xl font-black text-white tracking-tight">
               <span>edit</span><span className="text-red-500">mee</span>
             </span>
-          </button>
+          </a>
 
           {/* Desktop Category Master Dropdowns */}
           <nav className="hidden lg:flex items-center gap-1">
@@ -112,14 +115,17 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             })}
 
             {/* Master All Tools Button */}
-            <button
-              type="button"
-              onClick={() => onSelectCategoryFilter('all')}
+            <a
+              href="/"
+              onClick={(e) => {
+                e.preventDefault();
+                onSelectCategoryFilter('all');
+              }}
               className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-400 hover:bg-slate-800 transition-colors flex items-center gap-1 cursor-pointer"
             >
               <Layers className="w-3.5 h-3.5" />
               <span>All Tools</span>
-            </button>
+            </a>
           </nav>
         </div>
 

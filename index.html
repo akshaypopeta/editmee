@@ -5,19 +5,184 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0" />
     <title>EditMee — Universal Digital-Work Platform</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href="https://editmee.com/" />
+    <meta name="robots" content="index, follow" />
     <meta name="description" content="Universal digital-work platform with client-first PDF editing, image studio, document & resume builders, data analytics, developer utilities, calculators, visual workflow automation, and EditMee AI intelligence." />
     <meta property="og:title" content="EditMee — Universal Digital-Work Platform" />
     <meta property="og:description" content="Universal digital-work platform with client-first PDF editing, image studio, document & resume builders, data analytics, developer utilities, calculators, visual workflow automation, and EditMee AI intelligence." />
-    <meta property="og:image" content="/editmee-logo.svg" />
+    <meta property="og:image" content="https://editmee.com/editmee-logo.svg" />
+    <meta property="og:url" content="https://editmee.com/" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="EditMee" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="EditMee — Universal Digital-Work Platform" />
+    <meta name="twitter:description" content="Universal digital-work platform with client-first PDF editing, image studio, document & resume builders, data analytics, developer utilities, calculators, visual workflow automation, and EditMee AI intelligence." />
+    <meta name="twitter:image" content="https://editmee.com/editmee-logo.svg" />
     <meta name="theme-color" content="#020617" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script>
+      // Browser & mobile polyfills for WebKit / Safari 14-16 / older Android engines
+      (function() {
+        if (typeof window !== 'undefined') {
+          // Global object fallbacks
+          if (!window.global) {
+            window.global = window;
+          }
+          if (!window.DOMMatrix && window.WebKitCSSMatrix) {
+            window.DOMMatrix = window.WebKitCSSMatrix;
+          }
+
+          // crypto.randomUUID polyfill for iOS < 15.4 / older WebKit
+          if (typeof crypto !== 'undefined' && !crypto.randomUUID) {
+            crypto.randomUUID = function() {
+              return ('10000000-1000-4000-8000-100000000000').replace(/[018]/g, function(c) {
+                var num = Number(c);
+                return (num ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (num / 4)))).toString(16);
+              });
+            };
+          }
+
+          // Array.prototype.at polyfill for iOS < 15.4
+          if (!Array.prototype.at) {
+            Array.prototype.at = function(n) {
+              n = Math.trunc(n) || 0;
+              if (n < 0) n += this.length;
+              if (n < 0 || n >= this.length) return undefined;
+              return this[n];
+            };
+          }
+
+          // String.prototype.at polyfill for iOS < 15.4
+          if (!String.prototype.at) {
+            String.prototype.at = function(n) {
+              n = Math.trunc(n) || 0;
+              if (n < 0) n += this.length;
+              if (n < 0 || n >= this.length) return '';
+              return this.charAt(n);
+            };
+          }
+
+          // Object.hasOwn polyfill for iOS < 15.4
+          if (!Object.hasOwn) {
+            Object.hasOwn = function(obj, prop) {
+              return Object.prototype.hasOwnProperty.call(obj, prop);
+            };
+          }
+
+          // structuredClone polyfill for iOS < 15.4
+          if (!window.structuredClone) {
+            window.structuredClone = function(obj) {
+              if (obj === undefined) return undefined;
+              return JSON.parse(JSON.stringify(obj));
+            };
+          }
+
+          // requestIdleCallback polyfill for iOS < 16.4
+          if (!window.requestIdleCallback) {
+            window.requestIdleCallback = function(cb) {
+              return setTimeout(function() {
+                cb({ didTimeout: false, timeRemaining: function() { return Math.max(0, 50); } });
+              }, 1);
+            };
+            window.cancelIdleCallback = function(id) {
+              clearTimeout(id);
+            };
+          }
+
+          // ResizeObserver fallback to prevent runtime crashes on older engines
+          if (!window.ResizeObserver) {
+            window.ResizeObserver = function(callback) {
+              return {
+                observe: function(elem) {
+                  window.addEventListener('resize', function() {
+                    callback([{ target: elem, contentRect: elem.getBoundingClientRect() }]);
+                  });
+                },
+                unobserve: function() {},
+                disconnect: function() {}
+              };
+            };
+          }
+
+          // Safe storage test & memory fallback for Safari Private Browsing
+          try {
+            var testKey = '__editmee_st_test__';
+            window.localStorage.setItem(testKey, '1');
+            window.localStorage.removeItem(testKey);
+          } catch (e) {
+            var createMemoryStorage = function() {
+              var store = {};
+              return {
+                getItem: function(key) { return Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null; },
+                setItem: function(key, val) { store[key] = String(val); },
+                removeItem: function(key) { delete store[key]; },
+                clear: function() { store = {}; },
+                key: function(i) { return Object.keys(store)[i] || null; },
+                get length() { return Object.keys(store).length; }
+              };
+            };
+            try { Object.defineProperty(window, 'localStorage', { value: createMemoryStorage(), configurable: true }); } catch(e2) {}
+            try { Object.defineProperty(window, 'sessionStorage', { value: createMemoryStorage(), configurable: true }); } catch(e3) {}
+          }
+        }
+
+        // Cleanup broken/stale legacy service workers if any exist
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+            for (var i = 0; i < regs.length; i++) {
+              regs[i].unregister();
+            }
+          }).catch(function() {});
+        }
+
+        // Startup crash protection & dynamic chunk recovery
+        var hasLoadedSuccessfully = false;
+        window.__markEditMeeLoaded = function() {
+          hasLoadedSuccessfully = true;
+          try { sessionStorage.removeItem('editmee_chunk_retry'); } catch(e) {}
+        };
+
+        window.addEventListener('error', function(event) {
+          var msg = (event.message || '') + '';
+          var target = event.target || {};
+          var isChunkError = target.tagName === 'SCRIPT' || 
+            msg.indexOf('Loading chunk') !== -1 || 
+            msg.indexOf('Failed to fetch dynamically imported module') !== -1 ||
+            msg.indexOf('Importing a module script failed') !== -1 ||
+            msg.indexOf('Unexpected token') !== -1;
+
+          if (isChunkError && !hasLoadedSuccessfully) {
+            try {
+              var retried = sessionStorage.getItem('editmee_chunk_retry');
+              if (!retried) {
+                sessionStorage.setItem('editmee_chunk_retry', '1');
+                window.location.reload();
+                return;
+              }
+            } catch(e) {}
+          }
+
+          // If root is still empty after 2.5 seconds and there was a fatal error, show rescue UI
+          setTimeout(function() {
+            var root = document.getElementById('root');
+            if (root && (!root.firstElementChild || root.innerHTML.trim() === '')) {
+              root.innerHTML = '<div style="min-height:100vh;background:#020617;color:#f8fafc;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,sans-serif;text-align:center;"><div style="max-width:440px;background:#0f172a;border:1px solid #1e293b;border-radius:16px;padding:32px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);"><h2 style="font-size:18px;font-weight:800;margin-bottom:8px;color:#fff;">EditMee Ready to Recover</h2><p style="font-size:13px;color:#94a3b8;line-height:1.5;margin-bottom:20px;">A connection drop or outdated browser cache prevented startup. Click below to refresh with the latest version.</p><button onclick="try{sessionStorage.clear();}catch(e){}window.location.reload(true)" style="background:#dc2626;color:#fff;border:none;padding:10px 20px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;">Clear Cache & Reload</button></div></div>';
+            }
+          }, 2500);
+        }, true);
+      })();
+    </script>
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased selection:bg-red-600 selection:text-white">
     <div id="root"></div>
+    <noscript>
+      <div style="padding: 2rem; color: #fff; background: #020617; font-family: system-ui, sans-serif; text-align: center;">
+        <h1 style="font-size: 1.5rem; margin-bottom: 1rem;">EditMee Universal Digital Tools</h1>
+        <p>EditMee is a private, client-side digital work platform for PDF editing, image conversion, documents, calculators, and developer utilities. Please enable JavaScript in your browser to use our interactive tools.</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

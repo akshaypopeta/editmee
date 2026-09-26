@@ -1,0 +1,8 @@
+# Cloudflare Pages SPA Fallback and Redirect Rules
+/api/*  /api/:splat  200
+
+# Legacy route redirects to canonical clean URLs
+/tool/*  /tools/:splat/  301
+
+# SPA routing fallback for all pages
+/*      /index.html     200

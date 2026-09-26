@@ -12,7 +12,9 @@ export default defineConfig(() => {
       },
     },
     build: {
-      chunkSizeWarningLimit: 1500,
+      target: ['es2020', 'safari14', 'ios14', 'chrome87', 'firefox78', 'edge88'],
+      cssTarget: ['safari14', 'ios14', 'chrome87', 'firefox78'],
+      chunkSizeWarningLimit: 2000,
       rollupOptions: {
         output: {
           manualChunks(id) {
@@ -33,6 +35,27 @@ export default defineConfig(() => {
             }
             if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/scheduler/')) {
               return 'vendor-react';
+            }
+            if (id.includes('src/tools/catalog/new_batches/')) {
+              return 'catalog-batches-1';
+            }
+            if (id.includes('src/tools/catalog/expansion_batches/')) {
+              return 'catalog-batches-2';
+            }
+            if (id.includes('src/tools/studios/')) {
+              return 'studio-tools';
+            }
+            if (id.includes('src/tools/Business/')) {
+              return 'tools-business';
+            }
+            if (id.includes('src/tools/Developer/')) {
+              return 'tools-developer';
+            }
+            if (id.includes('src/tools/pdf/')) {
+              return 'tools-pdf';
+            }
+            if (id.includes('src/tools/images/')) {
+              return 'tools-images';
             }
           },
         },

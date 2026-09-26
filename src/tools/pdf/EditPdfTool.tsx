@@ -914,7 +914,7 @@ export const EditPdfTool: React.FC = () => {
   const pageAnnotations = annotations.filter((a) => a.page === currentPage);
 
   return (
-    <div id="edit-pdf-workspace" className="flex flex-col min-h-[520px] h-[calc(100dvh-8rem)] sm:h-[calc(100dvh-7.5rem)] bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-md">
+    <div id="edit-pdf-workspace" className="flex flex-col min-h-[520px] h-[calc(100vh-8rem)] h-[calc(100dvh-8rem)] sm:h-[calc(100vh-7.5rem)] sm:h-[calc(100dvh-7.5rem)] bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-md">
       {/* 1. TOP MASTER TOOLBAR */}
       <div className="min-h-14 bg-slate-900 border-b border-slate-800 px-2 sm:px-4 py-1.5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shrink-0 z-20">
         {/* Left Section: File Operations & Mode Switchers */}

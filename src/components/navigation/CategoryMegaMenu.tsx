@@ -1,5 +1,6 @@
 import React from 'react';
 import { toolRegistry } from '../../core/tool-registry/ToolRegistry';
+import { getToolCanonicalPath } from '../../core/routing/toolUrls';
 import { ToolDefinition } from '../../types';
 import {
   FileText,
@@ -299,9 +300,10 @@ export const CategoryMegaMenu: React.FC<CategoryMegaMenuProps> = ({
             <p className="text-xs text-slate-400">{category.description}</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => {
+        <a
+          href={`/category/${category.id}/`}
+          onClick={(e) => {
+            e.preventDefault();
             onViewAllCategory(category.id);
             onClose();
           }}
@@ -309,7 +311,7 @@ export const CategoryMegaMenu: React.FC<CategoryMegaMenuProps> = ({
         >
           <span>View all {category.name} → {categoryTools.length} Tools</span>
           <ArrowRight className="w-3.5 h-3.5" />
-        </button>
+        </a>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-5 max-h-[420px] overflow-y-auto pr-2 scrollbar-thin">
@@ -323,33 +325,35 @@ export const CategoryMegaMenu: React.FC<CategoryMegaMenuProps> = ({
             <ul className="space-y-0.5">
               {group.tools.slice(0, 10).map((tool) => (
                 <li key={tool.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
+                  <a
+                    href={getToolCanonicalPath(tool.id)}
+                    onClick={(e) => {
+                      e.preventDefault();
                       onSelectTool(tool.id);
                       onClose();
                     }}
-                    className="w-full text-left text-xs font-medium text-slate-300 hover:text-red-400 hover:bg-slate-800/80 px-2 py-1 rounded-lg transition-colors flex items-center justify-between group cursor-pointer"
+                    className="w-full text-left text-xs font-medium text-slate-300 hover:text-red-400 hover:bg-slate-800/80 px-2 py-1 rounded-lg transition-colors flex items-center justify-between group cursor-pointer block"
                   >
                     <span className="truncate">{tool.name}</span>
                     <span className="text-[10px] text-slate-500 group-hover:text-red-400 transition-colors shrink-0 ml-1">
                       →
                     </span>
-                  </button>
+                  </a>
                 </li>
               ))}
               {group.tools.length > 10 && (
                 <li>
-                  <button
-                    type="button"
-                    onClick={() => {
+                  <a
+                    href={`/category/${category.id}/`}
+                    onClick={(e) => {
+                      e.preventDefault();
                       onViewAllCategory(category.id);
                       onClose();
                     }}
-                    className="w-full text-left text-[11px] font-bold text-red-400 hover:text-red-300 px-2 py-1 transition-colors cursor-pointer"
+                    className="w-full text-left text-[11px] font-bold text-red-400 hover:text-red-300 px-2 py-1 transition-colors cursor-pointer block"
                   >
                     View more in {group.title} →
-                  </button>
+                  </a>
                 </li>
               )}
             </ul>

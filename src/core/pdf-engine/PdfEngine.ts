@@ -18,7 +18,7 @@ import {
 import { FileEngine } from '../file-engine/FileEngine';
 
 // Safe PDF.js worker setup with local worker and CDN fallback
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && typeof window.location !== 'undefined') {
   try {
     const origin = window.location.origin || '';
     (pdfjsLib as any).GlobalWorkerOptions.workerSrc = `${origin}/pdf.worker.min.mjs`;

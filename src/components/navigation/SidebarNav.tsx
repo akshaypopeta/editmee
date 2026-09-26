@@ -1,27 +1,29 @@
 import React, { useState } from 'react';
-import { CATEGORIES_CONFIG } from './CategoryMegaMenu';
 import { toolRegistry } from '../../core/tool-registry/ToolRegistry';
-import { EditMeeLogo } from '../common/EditMeeLogo';
+import { getToolCanonicalPath } from '../../core/routing/toolUrls';
 import {
-  Home,
+  FileText,
+  Image as ImageIcon,
   Sparkles,
-  Search,
-  ChevronDown,
-  ChevronRight,
-  Layers,
-  Star,
-  History,
   Workflow,
-  ArrowRight,
+  History,
+  Home,
+  ChevronRight,
+  ChevronDown,
   Shield,
-  Sliders,
   X,
+  Code,
+  Calculator,
+  Briefcase,
+  FileCheck,
+  Database,
 } from 'lucide-react';
+import { EditMeeLogo } from '../common/EditMeeLogo';
 
 interface SidebarNavProps {
   activeNav: string;
   activeToolId: string | null;
-  onSelectNav: (nav: any) => void;
+  onSelectNav: (nav: string) => void;
   onSelectTool: (toolId: string) => void;
   onSelectCategoryFilter: (categoryId: string) => void;
   favoritesCount?: number;
@@ -30,18 +32,33 @@ interface SidebarNavProps {
   onCloseMobile?: () => void;
 }
 
+const CATEGORIES_CONFIG = [
+  { id: 'pdf', name: 'PDF Tools', icon: FileText },
+  { id: 'images', name: 'Image Tools', icon: ImageIcon },
+  { id: 'documents', name: 'Documents & OCR', icon: FileCheck },
+  { id: 'resumes', name: 'Resume Architect', icon: Briefcase },
+  { id: 'data', name: 'Data & CSV', icon: Database },
+  { id: 'developer', name: 'Developer Tools', icon: Code },
+  { id: 'calculators', name: 'Calculators', icon: Calculator },
+  { id: 'business', name: 'Business Tools', icon: Briefcase },
+  { id: 'security', name: 'Security & Privacy', icon: Shield },
+  { id: 'ai', name: 'AI Workstation', icon: Sparkles },
+];
+
 export const SidebarNav: React.FC<SidebarNavProps> = ({
   activeNav,
   activeToolId,
   onSelectNav,
   onSelectTool,
   onSelectCategoryFilter,
-  favoritesCount = 0,
   historyCount = 0,
-  isMobileOpen,
+  isMobileOpen = false,
   onCloseMobile,
 }) => {
-  const [expandedCategories, setExpandedCategories] = useState<string[]>(['pdf', 'images', 'ai']);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([
+    'pdf',
+    'images',
+  ]);
 
   const toggleCategory = (catId: string) => {
     setExpandedCategories((prev) =>
@@ -51,15 +68,16 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 w-72 bg-slate-900 border-r border-slate-800 text-slate-200 flex flex-col transition-all duration-200 shadow-xl lg:translate-x-0 ${
+      className={`fixed inset-y-0 left-0 z-50 lg:z-30 w-72 bg-slate-900 border-r border-slate-800 text-slate-200 flex flex-col transition-all duration-200 shadow-2xl lg:translate-x-0 ${
         isMobileOpen ? 'translate-x-0' : '-translate-x-full'
       }`}
     >
       {/* Brand Header */}
       <div className="h-16 px-4 sm:px-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
-        <button
-          type="button"
-          onClick={() => {
+        <a
+          href="/"
+          onClick={(e) => {
+            e.preventDefault();
             onSelectNav('overview');
             onCloseMobile?.();
           }}
@@ -69,7 +87,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           <span className="text-xl sm:text-2xl font-black text-white tracking-tight">
             <span>edit</span><span className="text-red-500">mee</span>
           </span>
-        </button>
+        </a>
         <div className="flex items-center gap-2">
           <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-950/70 border border-red-800/80 text-red-400">
             PRO
@@ -91,9 +109,10 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin">
         {/* Core Links */}
         <div className="space-y-1">
-          <button
-            type="button"
-            onClick={() => {
+          <a
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
               onSelectNav('overview');
               onCloseMobile?.();
             }}
@@ -105,11 +124,12 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           >
             <Home className="w-4 h-4" />
             <span>Home & Directory</span>
-          </button>
+          </a>
 
-          <button
-            type="button"
-            onClick={() => {
+          <a
+            href="/tools/ai-assistant/"
+            onClick={(e) => {
+              e.preventDefault();
               onSelectNav('ai-assistant');
               onCloseMobile?.();
             }}
@@ -121,11 +141,12 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           >
             <Sparkles className="w-4 h-4 text-red-500" />
             <span>EditMee AI Assistant</span>
-          </button>
+          </a>
 
-          <button
-            type="button"
-            onClick={() => {
+          <a
+            href="/workflows/"
+            onClick={(e) => {
+              e.preventDefault();
               onSelectNav('workflows');
               onCloseMobile?.();
             }}
@@ -137,11 +158,12 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           >
             <Workflow className="w-4 h-4 text-emerald-400" />
             <span>Visual Pipelines</span>
-          </button>
+          </a>
 
-          <button
-            type="button"
-            onClick={() => {
+          <a
+            href="/history/"
+            onClick={(e) => {
+              e.preventDefault();
               onSelectNav('history');
               onCloseMobile?.();
             }}
@@ -160,7 +182,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                 {historyCount}
               </span>
             )}
-          </button>
+          </a>
         </div>
 
         {/* Master Category Suite Accordions */}
@@ -189,9 +211,10 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                         : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
                     }`}
                   >
-                    <button
-                      type="button"
-                      onClick={() => {
+                    <a
+                      href={`/category/${cat.id}/`}
+                      onClick={(e) => {
+                        e.preventDefault();
                         onSelectCategoryFilter(cat.id);
                         onCloseMobile?.();
                       }}
@@ -201,7 +224,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                       <div className="truncate flex items-center justify-between flex-1 pr-1">
                         <span className="font-bold truncate">{cat.name}</span>
                       </div>
-                    </button>
+                    </a>
 
                     <button
                       type="button"
@@ -224,10 +247,11 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                   {isExpanded && (
                     <div className="pl-5 pr-2 py-1.5 space-y-1 bg-slate-950/60 rounded-b-xl border-l-2 border-red-500 ml-3 my-1">
                       {toolsInCat.slice(0, 8).map((tool) => (
-                        <button
+                        <a
                           key={tool.id}
-                          type="button"
-                          onClick={() => {
+                          href={getToolCanonicalPath(tool.id)}
+                          onClick={(e) => {
+                            e.preventDefault();
                             onSelectTool(tool.id);
                             onCloseMobile?.();
                           }}
@@ -241,13 +265,14 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                           <span className="text-[10px] opacity-0 group-hover:opacity-100 text-red-500 transition-opacity">
                             →
                           </span>
-                        </button>
+                        </a>
                       ))}
 
                       {toolsInCat.length > 8 && (
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <a
+                          href={`/category/${cat.id}/`}
+                          onClick={(e) => {
+                            e.preventDefault();
                             onSelectCategoryFilter(cat.id);
                             onCloseMobile?.();
                           }}
@@ -255,7 +280,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                           title={`View all ${cat.name.toUpperCase()} (${toolsInCat.length} Tools)`}
                         >
                           View all {cat.name.toUpperCase().endsWith('TOOLS') ? cat.name.toUpperCase() : `${cat.name.toUpperCase()} TOOLS`} → {toolsInCat.length} Tools
-                        </button>
+                        </a>
                       )}
                     </div>
                   )}
