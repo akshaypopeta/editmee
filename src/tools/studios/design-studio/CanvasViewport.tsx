@@ -117,22 +117,33 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
     });
   }, [settings.width, settings.height, onUpdateCanvasSettings]);
 
-  // Initial fit on mount with multiple attempts to ensure DOM layout has settled
+  // Initial fit on mount safely
   useEffect(() => {
     fitToWorkspace();
-    const t1 = setTimeout(fitToWorkspace, 60);
-    const t2 = setTimeout(fitToWorkspace, 250);
-    const t3 = setTimeout(fitToWorkspace, 500);
+    const t1 = setTimeout(fitToWorkspace, 100);
+
+    let rafId: number | null = null;
+    let lastWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
+    let lastHeight = typeof window !== 'undefined' ? window.innerHeight : 0;
 
     const handleResize = () => {
-      fitToWorkspace();
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const curWidth = window.innerWidth;
+        const curHeight = window.innerHeight;
+        // Only re-fit if orientation or significant dimension changed (>40px)
+        if (Math.abs(curWidth - lastWidth) > 40 || Math.abs(curHeight - lastHeight) > 60) {
+          lastWidth = curWidth;
+          lastHeight = curHeight;
+          fitToWorkspace();
+        }
+      });
     };
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize, { passive: true });
 
     return () => {
       clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
+      if (rafId) cancelAnimationFrame(rafId);
       window.removeEventListener('resize', handleResize);
     };
   }, [fitToWorkspace]);
@@ -150,20 +161,34 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
     if (!el) return;
 
     let timeoutId: ReturnType<typeof setTimeout>;
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.contentRect.width > 50 && entry.contentRect.height > 50) {
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(() => {
-            fitToWorkspace();
-          }, 80);
-        }
-      }
-    });
+    let lastW = 0;
+    let lastH = 0;
+    let ro: ResizeObserver | null = null;
 
-    ro.observe(el);
+    try {
+      if (typeof ResizeObserver !== 'undefined') {
+        ro = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            const w = entry.contentRect.width;
+            const h = entry.contentRect.height;
+            if (w > 50 && h > 50) {
+              if (Math.abs(w - lastW) > 16 || Math.abs(h - lastH) > 16) {
+                lastW = w;
+                lastH = h;
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => {
+                  fitToWorkspace();
+                }, 100);
+              }
+            }
+          }
+        });
+        ro.observe(el);
+      }
+    } catch {}
+
     return () => {
-      ro.disconnect();
+      if (ro) ro.disconnect();
       clearTimeout(timeoutId);
     };
   }, [fitToWorkspace]);

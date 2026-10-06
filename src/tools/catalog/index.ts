@@ -9,8 +9,6 @@ import { mediaCatalog } from './mediaCatalog';
 import { pdfCatalog } from './pdfCatalog';
 import { resumesCatalog } from './resumesCatalog';
 import { securityCatalog } from './securityCatalog';
-import { allNew1000Tools } from './new_batches';
-import { allExpansion789Tools } from './expansion_batches';
 import { ToolDefinition } from '../../types';
 
 // Import all authentic flagship implementations
@@ -224,13 +222,11 @@ export {
   pdfCatalog,
   resumesCatalog,
   securityCatalog,
-  allNew1000Tools,
-  allExpansion789Tools,
 };
 
 import { deduplicateTools } from '../../core/tool-registry/deduplication';
 
-const rawAllCatalogTools: ToolDefinition[] = [
+export const rawCoreCatalogTools: ToolDefinition[] = [
   ...allRealTools,
   ...pdfCatalog,
   ...imagesCatalog,
@@ -243,26 +239,28 @@ const rawAllCatalogTools: ToolDefinition[] = [
   ...mediaCatalog,
   ...securityCatalog,
   ...aiCatalog,
-  ...allNew1000Tools,
-  ...allExpansion789Tools,
 ];
 
-// Perform canonical semantic deduplication
-const dedupeResult = deduplicateTools(rawAllCatalogTools);
-export const allCatalogTools: ToolDefinition[] = dedupeResult.canonicalTools;
-export const catalogAliasMap = dedupeResult.aliasMap;
+// Perform canonical semantic deduplication on core catalog
+const dedupeResult = deduplicateTools(rawCoreCatalogTools);
+export const coreCatalogTools: ToolDefinition[] = dedupeResult.canonicalTools;
+export const coreAliasMap = dedupeResult.aliasMap;
+
+// Backward-compatible exports
+export const allCatalogTools: ToolDefinition[] = coreCatalogTools;
+export const catalogAliasMap = coreAliasMap;
 
 export const allCatalogs: { category: string; title: string; tools: ToolDefinition[] }[] = [
-  { category: 'pdf', title: 'PDF & Document Studio', tools: allCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'pdf') },
-  { category: 'images', title: 'Image Processing & Graphics', tools: allCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'images') },
-  { category: 'documents', title: 'Document & Text Utilities', tools: allCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'documents') },
-  { category: 'resumes', title: 'Resume & Career Suite', tools: allCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'resumes') },
-  { category: 'data', title: 'Data, CSV & Analytics', tools: allCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'data') },
-  { category: 'developer', title: 'Developer & Web Utilities', tools: allCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'developer') },
-  { category: 'calculators', title: 'Calculators & Converters', tools: allCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'calculators') },
-  { category: 'business', title: 'Business, Invoicing & Finance', tools: allCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'business') },
-  { category: 'media', title: 'Audio & Media Studio', tools: allCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'media') },
-  { category: 'security', title: 'Security & Cryptography', tools: allCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'security') },
-  { category: 'ai', title: 'AI & Intelligence Suite', tools: allCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'ai') },
+  { category: 'pdf', title: 'PDF & Document Studio', tools: coreCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'pdf') },
+  { category: 'images', title: 'Image Processing & Graphics', tools: coreCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'images') },
+  { category: 'documents', title: 'Document & Text Utilities', tools: coreCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'documents') },
+  { category: 'resumes', title: 'Resume & Career Suite', tools: coreCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'resumes') },
+  { category: 'data', title: 'Data, CSV & Analytics', tools: coreCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'data') },
+  { category: 'developer', title: 'Developer & Web Utilities', tools: coreCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'developer') },
+  { category: 'calculators', title: 'Calculators & Converters', tools: coreCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'calculators') },
+  { category: 'business', title: 'Business, Invoicing & Finance', tools: coreCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'business') },
+  { category: 'media', title: 'Audio & Media Studio', tools: coreCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'media') },
+  { category: 'security', title: 'Security & Cryptography', tools: coreCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'security') },
+  { category: 'ai', title: 'AI & Intelligence Suite', tools: coreCatalogTools.filter((t) => (t.category || '').toLowerCase() === 'ai') },
 ];
 

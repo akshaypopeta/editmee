@@ -89,20 +89,46 @@ export const CanvasWorkspace: React.FC<CanvasWorkspaceProps> = ({
   const [workspaceSize, setWorkspaceSize] = useState({ width: 800, height: 600 });
   const [activeBadge, setActiveBadge] = useState<string | null>(null);
 
-  // ResizeObserver to ensure continuous auto-fit calculation
+  // ResizeObserver to ensure continuous auto-fit calculation without layout loops
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+
+    let rafId: number | null = null;
+    let lastW = el.clientWidth || 800;
+    let lastH = el.clientHeight || 600;
+
+    setWorkspaceSize({ width: lastW, height: lastH });
+
     const handleResize = () => {
-      setWorkspaceSize({
-        width: el.clientWidth || 800,
-        height: el.clientHeight || 600,
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        if (!containerRef.current) return;
+        const newW = containerRef.current.clientWidth || 800;
+        const newH = containerRef.current.clientHeight || 600;
+        // Prevent layout thrashing / infinite loops by requiring > 8px change
+        if (Math.abs(newW - lastW) > 8 || Math.abs(newH - lastH) > 8) {
+          lastW = newW;
+          lastH = newH;
+          setWorkspaceSize({ width: newW, height: newH });
+        }
       });
     };
-    handleResize();
-    const observer = new ResizeObserver(handleResize);
-    observer.observe(el);
-    return () => observer.disconnect();
+
+    let observer: ResizeObserver | null = null;
+    try {
+      if (typeof ResizeObserver !== 'undefined') {
+        observer = new ResizeObserver(handleResize);
+        observer.observe(el);
+      }
+    } catch {
+      // Fallback: silent degradation
+    }
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      if (observer) observer.disconnect();
+    };
   }, [containerRef]);
 
   // Responsive display scale calculation

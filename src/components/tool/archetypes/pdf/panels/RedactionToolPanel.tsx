@@ -15,7 +15,7 @@ import {
   RotateCcw,
   Palette,
 } from 'lucide-react';
-import { PdfDocumentInfo } from '../../../../../core/pdf-engine/PdfEngine';
+import { PdfDocumentInfo, getPdfJsLib } from '../../../../../core/pdf-engine/PdfEngine';
 
 export interface RedactionBox {
   id: string;
@@ -72,7 +72,7 @@ export const RedactionToolPanel: React.FC<RedactionToolPanelProps> = ({
     const renderPage = async () => {
       if (!fileBuffer || !canvasRef.current) return;
       try {
-        const pdfjsLib = await import('pdfjs-dist');
+        const pdfjsLib = await getPdfJsLib();
         const loadingTask = pdfjsLib.getDocument({
           data: new Uint8Array(fileBuffer.slice(0)),
           useSystemFonts: true,

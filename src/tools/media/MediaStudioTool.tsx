@@ -60,100 +60,127 @@ export const MediaStudioTool: React.FC = () => {
   }, []);
 
   const startSynth = () => {
-    stopAudio();
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    audioCtxRef.current = ctx;
+    try {
+      stopAudio();
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) {
+        console.warn('Web Audio API not supported on this device');
+        return;
+      }
+      const ctx = new AudioCtx();
+      audioCtxRef.current = ctx;
 
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
-    osc.type = waveType;
-    osc.frequency.setValueAtTime(frequency, ctx.currentTime);
-    gain.gain.setValueAtTime(gainLevel, ctx.currentTime);
+      osc.type = waveType;
+      osc.frequency.setValueAtTime(frequency, ctx.currentTime);
+      gain.gain.setValueAtTime(gainLevel, ctx.currentTime);
 
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
 
-    osc.start();
-    oscRef.current = osc;
-    gainRef.current = gain;
-    setIsPlaying(true);
+      osc.start();
+      oscRef.current = osc;
+      gainRef.current = gain;
+      setIsPlaying(true);
+    } catch (err) {
+      console.warn('Failed to start audio synthesizer:', err);
+    }
   };
 
   const startNoise = () => {
-    stopAudio();
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    audioCtxRef.current = ctx;
-
-    const bufferSize = 2 * ctx.sampleRate;
-    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
-
-    let lastOut = 0.0;
-    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-
-    for (let i = 0; i < bufferSize; i++) {
-      const white = Math.random() * 2 - 1;
-      if (noiseType === 'white') {
-        output[i] = white * 0.3;
-      } else if (noiseType === 'pink') {
-        b0 = 0.99886 * b0 + white * 0.0555179;
-        b1 = 0.99332 * b1 + white * 0.0750759;
-        b2 = 0.96900 * b2 + white * 0.1538520;
-        b3 = 0.86650 * b3 + white * 0.3104856;
-        b4 = 0.55000 * b4 + white * 0.5329522;
-        b5 = -0.7616 * b5 - white * 0.0168980;
-        output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.07;
-        b6 = white * 0.115926;
-      } else if (noiseType === 'brown') {
-        lastOut = (lastOut + 0.02 * white) / 1.02;
-        output[i] = lastOut * 1.5;
+    try {
+      stopAudio();
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) {
+        console.warn('Web Audio API not supported on this device');
+        return;
       }
+      const ctx = new AudioCtx();
+      audioCtxRef.current = ctx;
+
+      const bufferSize = 2 * ctx.sampleRate;
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+
+      let lastOut = 0.0;
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        if (noiseType === 'white') {
+          output[i] = white * 0.3;
+        } else if (noiseType === 'pink') {
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.96900 * b2 + white * 0.1538520;
+          b3 = 0.86650 * b3 + white * 0.3104856;
+          b4 = 0.55000 * b4 + white * 0.5329522;
+          b5 = -0.7616 * b5 - white * 0.0168980;
+          output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.07;
+          b6 = white * 0.115926;
+        } else if (noiseType === 'brown') {
+          lastOut = (lastOut + 0.02 * white) / 1.02;
+          output[i] = lastOut * 1.5;
+        }
+      }
+
+      const whiteNoise = ctx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+      whiteNoise.loop = true;
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(gainLevel, ctx.currentTime);
+
+      whiteNoise.connect(gain);
+      gain.connect(ctx.destination);
+
+      whiteNoise.start(0);
+      noiseNodeRef.current = whiteNoise;
+      setIsPlaying(true);
+    } catch (err) {
+      console.warn('Failed to start ambient noise generator:', err);
     }
-
-    const whiteNoise = ctx.createBufferSource();
-    whiteNoise.buffer = noiseBuffer;
-    whiteNoise.loop = true;
-
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(gainLevel, ctx.currentTime);
-
-    whiteNoise.connect(gain);
-    gain.connect(ctx.destination);
-
-    whiteNoise.start(0);
-    noiseNodeRef.current = whiteNoise;
-    setIsPlaying(true);
   };
 
   const startBinaural = () => {
-    stopAudio();
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    audioCtxRef.current = ctx;
+    try {
+      stopAudio();
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) {
+        console.warn('Web Audio API not supported on this device');
+        return;
+      }
+      const ctx = new AudioCtx();
+      audioCtxRef.current = ctx;
 
-    const merger = ctx.createChannelMerger(2);
-    const oscL = ctx.createOscillator();
-    const oscR = ctx.createOscillator();
+      const merger = ctx.createChannelMerger(2);
+      const oscL = ctx.createOscillator();
+      const oscR = ctx.createOscillator();
 
-    oscL.type = 'sine';
-    oscR.type = 'sine';
+      oscL.type = 'sine';
+      oscR.type = 'sine';
 
-    oscL.frequency.setValueAtTime(baseFreq, ctx.currentTime);
-    oscR.frequency.setValueAtTime(baseFreq + beatFreq, ctx.currentTime);
+      oscL.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+      oscR.frequency.setValueAtTime(baseFreq + beatFreq, ctx.currentTime);
 
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(gainLevel * 0.7, ctx.currentTime);
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(gainLevel * 0.7, ctx.currentTime);
 
-    oscL.connect(merger, 0, 0);
-    oscR.connect(merger, 0, 1);
-    merger.connect(gain);
-    gain.connect(ctx.destination);
+      oscL.connect(merger, 0, 0);
+      oscR.connect(merger, 0, 1);
+      merger.connect(gain);
+      gain.connect(ctx.destination);
 
-    oscL.start();
-    oscR.start();
+      oscL.start();
+      oscR.start();
 
-    oscRef.current = oscL;
-    setIsPlaying(true);
+      oscRef.current = oscL;
+      setIsPlaying(true);
+    } catch (err) {
+      console.warn('Failed to start binaural beat generator:', err);
+    }
   };
 
   return (

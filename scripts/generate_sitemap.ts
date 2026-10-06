@@ -36,7 +36,7 @@ async function run() {
   const { registerAllTools } = await import('../src/core/tool-registry/registerAllTools');
   const { initToolUrlMappings, getAllToolRoutes, CANONICAL_ORIGIN } = await import('../src/core/routing/toolUrls');
 
-  registerAllTools();
+  await registerAllTools();
   initToolUrlMappings();
 
   const toolRoutes = getAllToolRoutes();
@@ -195,6 +195,10 @@ Sitemap: ${CANONICAL_ORIGIN}/sitemap.xml
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: SAMEORIGIN
+/
+  Cache-Control: no-cache, no-store, must-revalidate, max-age=0
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate, max-age=0
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 /sitemap.xml

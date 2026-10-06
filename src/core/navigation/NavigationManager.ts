@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { safeSessionStorage } from '../storage/safeStorage';
+
 export interface NavigationHistoryEntry {
   path: string;
   type: 'tool' | 'category' | 'legal' | 'home' | 'workflows' | 'history';
@@ -25,7 +27,7 @@ class NavigationManager {
   private init() {
     if (this.isInitialized || typeof window === 'undefined') return;
     try {
-      const stored = sessionStorage.getItem(STORAGE_KEY);
+      const stored = safeSessionStorage.getItem(STORAGE_KEY);
       if (stored) {
         this.historyStack = JSON.parse(stored);
       }
@@ -88,7 +90,7 @@ class NavigationManager {
       if (this.historyStack.length > MAX_HISTORY_LENGTH) {
         this.historyStack = this.historyStack.slice(-MAX_HISTORY_LENGTH);
       }
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(this.historyStack));
+      safeSessionStorage.setItem(STORAGE_KEY, JSON.stringify(this.historyStack));
     } catch {}
   }
 

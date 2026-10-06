@@ -543,7 +543,7 @@ export const ImageStudioTool: React.FC = () => {
   };
 
   return (
-    <div id="image-studio-workspace" className="flex flex-col h-[calc(100vh-8.5rem)] bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-md">
+    <div id="image-studio-workspace" className="flex flex-col h-[calc(100vh-8.5rem)] h-[calc(100dvh-8.5rem)] bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-md">
       {/* Top Header Bar */}
       <div className="min-h-14 bg-slate-900 border-b border-slate-800 px-2 sm:px-4 py-1.5 flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-0.5 max-w-full">

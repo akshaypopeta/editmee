@@ -1,4 +1,5 @@
 import { HistoryItem, WorkflowDefinition, AppPreferences } from '../../types';
+import { safeLocalStorage } from '../storage/safeStorage';
 
 export type { HistoryItem, WorkflowDefinition, AppPreferences };
 
@@ -67,9 +68,18 @@ export class StorageEngine {
   // Preferences
   public getPreferences(): AppPreferences {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.PREFS);
-      return data ? { ...DEFAULT_PREFS, ...JSON.parse(data) } : DEFAULT_PREFS;
-    } catch {
+      const data = safeLocalStorage.getItem(STORAGE_KEYS.PREFS);
+      if (!data) return DEFAULT_PREFS;
+      const parsed = JSON.parse(data);
+      if (typeof parsed !== 'object' || parsed === null) return DEFAULT_PREFS;
+      return {
+        ...DEFAULT_PREFS,
+        ...parsed,
+        favorites: Array.isArray(parsed.favorites) ? parsed.favorites : DEFAULT_PREFS.favorites,
+        recentTools: Array.isArray(parsed.recentTools) ? parsed.recentTools : DEFAULT_PREFS.recentTools,
+      };
+    } catch (e) {
+      console.warn('[EditMee] storage:error Failed to load preferences:', e);
       return DEFAULT_PREFS;
     }
   }
@@ -78,23 +88,24 @@ export class StorageEngine {
     try {
       const current = this.getPreferences();
       const updated = { ...current, ...prefs };
-      localStorage.setItem(STORAGE_KEYS.PREFS, JSON.stringify(updated));
+      safeLocalStorage.setItem(STORAGE_KEYS.PREFS, JSON.stringify(updated));
       if (prefs.favorites) {
         this.notifyFavorites();
       }
     } catch (e) {
-      console.warn('Failed to save preferences to localStorage', e);
+      console.warn('[EditMee] storage:error Failed to save preferences:', e);
     }
   }
 
   // Favorites
   public getFavorites(): string[] {
-    return this.getPreferences().favorites || [];
+    const favs = this.getPreferences().favorites;
+    return Array.isArray(favs) ? favs : [];
   }
 
   public toggleFavorite(toolId: string): boolean {
     const prefs = this.getPreferences();
-    const favorites = new Set(prefs.favorites);
+    const favorites = new Set(Array.isArray(prefs.favorites) ? prefs.favorites : []);
     let isFav = false;
     if (favorites.has(toolId)) {
       favorites.delete(toolId);
@@ -115,20 +126,25 @@ export class StorageEngine {
   // Recent Tools
   public recordRecentTool(toolId: string): void {
     const prefs = this.getPreferences();
-    const recents = [toolId, ...prefs.recentTools.filter((id) => id !== toolId)].slice(0, 10);
+    const currentRecents = Array.isArray(prefs.recentTools) ? prefs.recentTools : [];
+    const recents = [toolId, ...currentRecents.filter((id) => id !== toolId)].slice(0, 10);
     this.savePreferences({ recentTools: recents });
   }
 
   public getRecentTools(): string[] {
-    return this.getPreferences().recentTools || [];
+    const recents = this.getPreferences().recentTools;
+    return Array.isArray(recents) ? recents : [];
   }
 
   // History
   public getHistory(): HistoryItem[] {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.HISTORY);
-      return data ? JSON.parse(data) : [];
-    } catch {
+      const data = safeLocalStorage.getItem(STORAGE_KEYS.HISTORY);
+      if (!data) return [];
+      const parsed = JSON.parse(data);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.warn('[EditMee] storage:error Failed to load history:', e);
       return [];
     }
   }
@@ -144,40 +160,44 @@ export class StorageEngine {
       timestamp: Date.now(),
     };
     try {
-      const history = [newItem, ...this.getHistory()].slice(0, 50); // Keep last 50
-      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
+      const currentHistory = this.getHistory();
+      const history = [newItem, ...currentHistory].slice(0, 50); // Keep last 50
+      safeLocalStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
       this.notifyHistory();
     } catch (e) {
-      console.warn('Failed to add history item', e);
+      console.warn('[EditMee] storage:error Failed to add history item:', e);
     }
     return newItem;
   }
 
   public clearHistory(): void {
     try {
-      localStorage.removeItem(STORAGE_KEYS.HISTORY);
+      safeLocalStorage.removeItem(STORAGE_KEYS.HISTORY);
       this.notifyHistory();
     } catch (e) {
-      console.warn('Failed to clear history', e);
+      console.warn('[EditMee] storage:error Failed to clear history:', e);
     }
   }
 
   public deleteHistoryItem(id: string): void {
     try {
       const history = this.getHistory().filter((item) => item.id !== id);
-      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
+      safeLocalStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
       this.notifyHistory();
     } catch (e) {
-      console.warn('Failed to delete history item', e);
+      console.warn('[EditMee] storage:error Failed to delete history item:', e);
     }
   }
 
   // Workflows
   public getWorkflows(): WorkflowDefinition[] {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.WORKFLOWS);
-      return data ? JSON.parse(data) : [];
-    } catch {
+      const data = safeLocalStorage.getItem(STORAGE_KEYS.WORKFLOWS);
+      if (!data) return [];
+      const parsed = JSON.parse(data);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.warn('[EditMee] storage:error Failed to load workflows:', e);
       return [];
     }
   }
@@ -191,7 +211,7 @@ export class StorageEngine {
       } else {
         workflows.unshift({ ...workflow, createdAt: Date.now(), updatedAt: Date.now() });
       }
-      localStorage.setItem(STORAGE_KEYS.WORKFLOWS, JSON.stringify(workflows));
+      safeLocalStorage.setItem(STORAGE_KEYS.WORKFLOWS, JSON.stringify(workflows));
     } catch (e) {
       console.warn('Failed to save workflow', e);
     }
@@ -200,7 +220,7 @@ export class StorageEngine {
   public deleteWorkflow(id: string): void {
     try {
       const workflows = this.getWorkflows().filter((w) => w.id !== id);
-      localStorage.setItem(STORAGE_KEYS.WORKFLOWS, JSON.stringify(workflows));
+      safeLocalStorage.setItem(STORAGE_KEYS.WORKFLOWS, JSON.stringify(workflows));
     } catch (e) {
       console.warn('Failed to delete workflow', e);
     }
@@ -210,9 +230,11 @@ export class StorageEngine {
   public getStorageUsage(): { usedBytes: number; formatted: string; quotaApprox: string } {
     try {
       let totalBytes = 0;
-      for (const key in localStorage) {
-        if (localStorage.hasOwnProperty(key)) {
-          totalBytes += (localStorage[key].length + key.length) * 2; // UTF-16 approx
+      const keys = safeLocalStorage.getAllKeys();
+      for (const key of keys) {
+        const val = safeLocalStorage.getItem(key);
+        if (val) {
+          totalBytes += (val.length + key.length) * 2; // UTF-16 approx
         }
       }
       const kb = (totalBytes / 1024).toFixed(1);
@@ -244,11 +266,11 @@ export class StorageEngine {
         this.savePreferences(parsed.preferences);
       }
       if (Array.isArray(parsed.history)) {
-        localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(parsed.history));
+        safeLocalStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(parsed.history));
         this.notifyHistory();
       }
       if (Array.isArray(parsed.workflows)) {
-        localStorage.setItem(STORAGE_KEYS.WORKFLOWS, JSON.stringify(parsed.workflows));
+        safeLocalStorage.setItem(STORAGE_KEYS.WORKFLOWS, JSON.stringify(parsed.workflows));
       }
       return true;
     } catch (e) {
@@ -259,3 +281,4 @@ export class StorageEngine {
 }
 
 export const storageEngine = StorageEngine.getInstance();
+

@@ -128,7 +128,7 @@ export const DevStudioTool: React.FC = () => {
   };
 
   return (
-    <div id="dev-studio-workspace" className="flex flex-col h-[calc(100vh-8rem)] bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-sm">
+    <div id="dev-studio-workspace" className="flex flex-col h-[calc(100vh-8rem)] h-[calc(100dvh-8rem)] bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-sm">
       {/* Top Header */}
       <div className="h-14 bg-slate-900 border-b border-slate-800 px-6 flex items-center justify-between gap-4 shrink-0">
         <div className="flex items-center gap-3">

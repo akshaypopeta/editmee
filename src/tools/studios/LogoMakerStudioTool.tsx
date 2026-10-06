@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { ToolDefinition } from '../../types';
 import { storageEngine } from '../../core/storage-engine/StorageEngine';
+import { safeLocalStorage } from '../../core/storage/safeStorage';
 import {
   LogoElement,
   CanvasDimensions,
@@ -786,7 +787,7 @@ export const LogoMakerStudioWorkspace: React.FC = () => {
       brandKit,
     };
     try {
-      localStorage.setItem('editmee-saved-logo-project', JSON.stringify(projectData));
+      safeLocalStorage.setItem('editmee-saved-logo-project', JSON.stringify(projectData));
       alert('Logo project successfully saved to local vault!');
     } catch (e) {
       console.error('Failed to save project', e);

@@ -28,6 +28,7 @@ import { MockupModal } from './design-studio/MockupModal';
 import { AiStudioModal } from './design-studio/AiStudioModal';
 import { auditDesign } from './design-studio/designAdvisor';
 import { DESIGN_TEMPLATES, DesignTemplate } from './design-studio/templates';
+import { safeLocalStorage } from '../../core/storage/safeStorage';
 
 const STORAGE_KEY = 'editmee_design_studio_state_v2';
 
@@ -210,7 +211,7 @@ export const DesignStudioWorkspace: React.FC = () => {
           brandKit,
           savedAt: Date.now(),
         };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(projectData));
+        safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(projectData));
         setSaveStatus('saved');
       } catch (err) {
         console.warn('Autosave quota:', err);

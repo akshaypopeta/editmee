@@ -1,16 +1,17 @@
 import { toolRegistry } from './ToolRegistry';
-import { allCatalogTools, catalogAliasMap } from '../../tools/catalog';
+import { coreCatalogTools, coreAliasMap } from '../../tools/catalog';
 
-let registered = false;
+let coreRegistered = false;
+let deferredPromise: Promise<void> | null = null;
 
-export function registerAllTools() {
-  if (registered) return;
-  registered = true;
+export function registerCoreTools() {
+  if (coreRegistered) return;
+  coreRegistered = true;
 
-  toolRegistry.registerMany(allCatalogTools);
+  toolRegistry.registerMany(coreCatalogTools);
 
-  if (catalogAliasMap) {
-    catalogAliasMap.forEach((canonicalId, aliasId) => {
+  if (coreAliasMap) {
+    coreAliasMap.forEach((canonicalId, aliasId) => {
       toolRegistry.registerAlias(aliasId, canonicalId);
     });
   }
@@ -102,4 +103,28 @@ export function registerAllTools() {
   imageAliases.forEach(([alias, canonical]) => {
     toolRegistry.registerAlias(alias, canonical);
   });
+}
+
+export function registerDeferredTools(): Promise<void> {
+  if (deferredPromise) return deferredPromise;
+
+  deferredPromise = import('../../tools/catalog/deferredCatalog')
+    .then(({ deferredCatalogTools, deferredAliasMap }) => {
+      toolRegistry.registerMany(deferredCatalogTools);
+      if (deferredAliasMap) {
+        deferredAliasMap.forEach((canonicalId, aliasId) => {
+          toolRegistry.registerAlias(aliasId, canonicalId);
+        });
+      }
+    })
+    .catch((err) => {
+      console.warn('[EditMee] Deferred catalog load error:', err);
+    });
+
+  return deferredPromise;
+}
+
+export async function registerAllTools(): Promise<void> {
+  registerCoreTools();
+  return registerDeferredTools();
 }

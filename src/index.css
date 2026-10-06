@@ -12,12 +12,10 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   overflow-x: hidden;
-  overflow-x: clip;
 }
 
 body {
   overflow-x: hidden;
-  overflow-x: clip;
   min-height: 100vh;
   min-height: -webkit-fill-available;
   min-height: 100dvh;
@@ -78,3 +76,17 @@ input[type="submit"] {
   min-height: 100vh;
   min-height: 100dvh;
 }
+
+/* Dynamic viewport height fallbacks across mobile browsers */
+@supports (min-height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh;
+  }
+}
+
+@supports (height: 100dvh) {
+  .h-screen {
+    height: 100dvh;
+  }
+}
+

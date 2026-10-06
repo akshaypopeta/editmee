@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 import {
   PdfEngine,
   PdfDocumentInfo,
@@ -61,7 +61,7 @@ export const EditPdfTool: React.FC = () => {
   // --- Document State ---
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfBuffer, setPdfBuffer] = useState<ArrayBuffer | null>(null);
-  const [pdfDocProxy, setPdfDocProxy] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
+  const [pdfDocProxy, setPdfDocProxy] = useState<PDFDocumentProxy | null>(null);
   const [docInfo, setDocInfo] = useState<PdfDocumentInfo | null>(null);
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);

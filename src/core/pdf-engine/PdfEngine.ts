@@ -1,5 +1,4 @@
-import * as pdfjsLib from 'pdfjs-dist';
-import { createWorker } from 'tesseract.js';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 import {
   PDFDocument,
   rgb,
@@ -17,14 +16,29 @@ import {
 } from 'pdf-lib';
 import { FileEngine } from '../file-engine/FileEngine';
 
-// Safe PDF.js worker setup with local worker and CDN fallback
-if (typeof window !== 'undefined' && typeof window.location !== 'undefined') {
-  try {
-    const origin = window.location.origin || '';
-    (pdfjsLib as any).GlobalWorkerOptions.workerSrc = `${origin}/pdf.worker.min.mjs`;
-  } catch (e) {
-    console.warn('PDF.js worker setup warning:', e);
-  }
+// Lazy loader for pdfjs-dist: isolated feature boundary preventing startup evaluation
+let pdfJsPromise: Promise<any> | null = null;
+export async function getPdfJsLib(): Promise<any> {
+  if (pdfJsPromise) return pdfJsPromise;
+  pdfJsPromise = (async () => {
+    try {
+      const lib = await import('pdfjs-dist');
+      if (typeof window !== 'undefined' && typeof window.location !== 'undefined') {
+        try {
+          const origin = window.location.origin || '';
+          lib.GlobalWorkerOptions.workerSrc = `${origin}/pdf.worker.min.js`;
+        } catch (e) {
+          console.warn('PDF.js worker setup warning:', e);
+        }
+      }
+      return lib;
+    } catch (err) {
+      pdfJsPromise = null;
+      console.warn('[EditMee] Failed to dynamically load pdfjs-dist:', err);
+      throw new Error('PDF feature could not be loaded on this browser.');
+    }
+  })();
+  return pdfJsPromise;
 }
 
 /**
@@ -249,11 +263,11 @@ export class PdfEngine {
    * Loads a PDF document using PDF.js for fast high-fidelity rendering
    */
   public static async loadPdfJsDoc(
-    source: File | Blob | ArrayBuffer | Uint8Array | pdfjsLib.PDFDocumentProxy,
+    source: File | Blob | ArrayBuffer | Uint8Array | PDFDocumentProxy,
     password?: string
-  ): Promise<pdfjsLib.PDFDocumentProxy> {
+  ): Promise<PDFDocumentProxy> {
     if (source && typeof (source as any).getPage === 'function') {
-      return source as pdfjsLib.PDFDocumentProxy;
+      return source as PDFDocumentProxy;
     }
 
     let uint8: Uint8Array;
@@ -263,18 +277,9 @@ export class PdfEngine {
       const arrayBuffer = await FileEngine.readAsArrayBuffer(source as Blob | File);
       uint8 = this.toSafeUint8Array(arrayBuffer);
     }
-    
-    // Ensure worker is properly set with fallback
-    if (typeof window !== 'undefined') {
-      try {
-        const origin = window.location.origin || '';
-        (pdfjsLib as any).GlobalWorkerOptions.workerSrc = `${origin}/pdf.worker.min.mjs`;
-      } catch (e) {
-        console.warn('Worker path setup:', e);
-      }
-    }
 
-    const version = (pdfjsLib as any).version || '6.2.108';
+    const pdfjsLib = await getPdfJsLib();
+    const version = (pdfjsLib as any).version || '3.11.174';
     const loadingTask = pdfjsLib.getDocument({
       data: uint8.slice(0),
       password: password || undefined,
@@ -289,7 +294,7 @@ export class PdfEngine {
    * Reads high-level document metadata & page dimensions with sub-5ms fast path
    */
   public static async getDocumentInfo(
-    source: File | Blob | ArrayBuffer | Uint8Array | pdfjsLib.PDFDocumentProxy,
+    source: File | Blob | ArrayBuffer | Uint8Array | PDFDocumentProxy,
     password?: string
   ): Promise<PdfDocumentInfo> {
     let uint8: Uint8Array | null = null;
@@ -336,10 +341,10 @@ export class PdfEngine {
       }
     }
 
-    let pdfDoc: pdfjsLib.PDFDocumentProxy | null = null;
+    let pdfDoc: PDFDocumentProxy | null = null;
     try {
       pdfDoc = (source && typeof (source as any).getPage === 'function')
-        ? (source as pdfjsLib.PDFDocumentProxy)
+        ? (source as PDFDocumentProxy)
         : await this.loadPdfJsDoc(source, password);
     } catch (err: any) {
       const msg = err?.message || String(err);
@@ -418,7 +423,7 @@ export class PdfEngine {
    * Renders a specific page of a PDF onto an HTML canvas with crisp Hi-DPI resolution & robust mobile task cancellation
    */
   public static async renderPageToCanvas(
-    pdfDoc: pdfjsLib.PDFDocumentProxy,
+    pdfDoc: PDFDocumentProxy,
     pageNumber: number,
     scale = 1.0,
     targetCanvas?: HTMLCanvasElement
@@ -506,7 +511,7 @@ export class PdfEngine {
    * Extracts text items with exact bounding box coordinates (converted to top-left origin)
    */
   public static async extractPageText(
-    pdfDoc: pdfjsLib.PDFDocumentProxy,
+    pdfDoc: PDFDocumentProxy,
     pageNumber: number
   ): Promise<PdfPageTextContent> {
     const page = await pdfDoc.getPage(pageNumber);
@@ -570,7 +575,7 @@ export class PdfEngine {
    * Search for text matches across all pages in the PDF document
    */
   public static async searchInPdf(
-    pdfDoc: pdfjsLib.PDFDocumentProxy,
+    pdfDoc: PDFDocumentProxy,
     query: string,
     caseSensitive = false
   ): Promise<PdfSearchMatch[]> {
@@ -4972,6 +4977,7 @@ export class PdfEngine {
       options.onProgress({ stage: 'Initializing OCR Engine...', percent: 5, totalPages: pagesToProcess.length });
     }
 
+    const { createWorker } = await import('tesseract.js');
     const worker = await createWorker(lang);
 
     let fullExtractedText = '';

@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
@@ -512,35 +513,99 @@ function generateProceduralGraphic(prompt: string, aspectRatio: string = '1:1', 
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
+    const assetsDir = path.join(distPath, 'assets');
 
-    // Hashed production assets: cache immutably for 1 year
-    app.use(
-      '/assets',
-      express.static(path.join(distPath, 'assets'), {
-        maxAge: '1y',
-        immutable: true,
-      })
-    );
+    // Self-healing asset middleware: serves existing chunks immutably, and rescues stale chunks from older deployments
+    app.get('/assets/:file(*)', (req, res, next) => {
+      const rawFile = req.params.file || '';
+      const fileName = path.basename(rawFile);
+      const targetPath = path.join(assetsDir, fileName);
 
-    // If an asset in /assets/ is missing (e.g. stale cache requesting old chunk), return 404, NOT index.html!
-    app.get('/assets/*', (req, res) => {
-      res.status(404).type('text/plain').send('Asset chunk not found');
+      // 1. If file exists on disk, serve it with long-lived immutable cache
+      if (fs.existsSync(targetPath)) {
+        res.set({
+          'Cache-Control': 'public, max-age=31536000, immutable',
+        });
+        return res.sendFile(targetPath);
+      }
+
+      // 2. File missing: A stale cached HTML/JS from a previous deployment requested an outdated chunk.
+      console.warn(`[EditMee Server] Stale deployment asset requested: ${fileName}`);
+
+      // For JavaScript modules: return a valid JS module that smoothly auto-recovers to the latest deployment
+      if (fileName.endsWith('.js')) {
+        res.set({
+          'Content-Type': 'application/javascript; charset=utf-8',
+          'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        });
+        return res.status(200).send(`
+// [EditMee Auto-Recovery] Stale chunk detected from previous deployment.
+if (typeof window !== "undefined") {
+  try {
+    var KEY = "__editmee_stale_chunk_refresh__";
+    var count = parseInt(sessionStorage.getItem(KEY) || "0", 10);
+    if (count < 2) {
+      sessionStorage.setItem(KEY, String(count + 1));
+      var currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set("_v", Date.now().toString());
+      window.location.replace(currentUrl.toString());
+    } else {
+      sessionStorage.removeItem(KEY);
+    }
+  } catch(e) {}
+}
+export default {};
+export const toolRegistry = {};
+export const registerAllTools = function() {};
+export const aiGateway = {};
+export const storageEngine = {};
+export const taskManager = {};
+`);
+      }
+
+      // For CSS stylesheets: return the current production stylesheet or clean fallback
+      if (fileName.endsWith('.css')) {
+        try {
+          if (fs.existsSync(assetsDir)) {
+            const cssFiles = fs.readdirSync(assetsDir).filter((f) => f.endsWith('.css'));
+            if (cssFiles.length > 0) {
+              res.set({
+                'Content-Type': 'text/css; charset=utf-8',
+                'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+              });
+              return res.sendFile(path.join(assetsDir, cssFiles[0]));
+            }
+          }
+        } catch (e) {}
+        return res.status(200).type('text/css').send('/* stale css auto-recovered */');
+      }
+
+      // Other assets (images/fonts): 404
+      res.status(404).type('text/plain').send('Asset not found');
     });
 
     // Root static assets (favicon, manifest, robots, sitemap, etc.)
     app.use(
       express.static(distPath, {
         index: false,
-        maxAge: '1h',
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+          }
+        },
       })
     );
 
-    // SPA entry point: never cache index.html so users always receive latest chunk references
+    // SPA entry point: strictly never cache index.html so users always receive latest chunk references
     app.get('*', (req, res) => {
       res.set({
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        Pragma: 'no-cache',
-        Expires: '0',
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Surrogate-Control': 'no-store',
+        'CDN-Cache-Control': 'no-store',
       });
       res.sendFile(path.join(distPath, 'index.html'));
     });

@@ -1,4 +1,5 @@
 import { SeoAuditReport, AuditHistoryRecord } from './types';
+import { safeLocalStorage } from '../../../core/storage/safeStorage';
 
 const STORAGE_KEY = 'editmee_seo_audit_history_v1';
 const MAX_HISTORY_ITEMS = 30;
@@ -6,7 +7,7 @@ const MAX_HISTORY_ITEMS = 30;
 export function getAuditHistory(): AuditHistoryRecord[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeLocalStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const list = JSON.parse(raw);
     return Array.isArray(list) ? list : [];
@@ -34,7 +35,7 @@ export function saveAuditToHistory(report: SeoAuditReport): void {
 
     // Filter duplicate if same ID
     const updated = [newRecord, ...existing.filter((item) => item.id !== report.id)].slice(0, MAX_HISTORY_ITEMS);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   } catch (err) {
     console.error('Failed to save SEO audit to history:', err);
   }
@@ -45,7 +46,7 @@ export function deleteAuditFromHistory(id: string): AuditHistoryRecord[] {
   try {
     const existing = getAuditHistory();
     const updated = existing.filter((item) => item.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     return updated;
   } catch (err) {
     console.error('Failed to delete SEO audit:', err);
@@ -56,8 +57,9 @@ export function deleteAuditFromHistory(id: string): AuditHistoryRecord[] {
 export function clearAuditHistory(): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    safeLocalStorage.removeItem(STORAGE_KEY);
   } catch (err) {
     console.error('Failed to clear SEO audit history:', err);
   }
 }
+

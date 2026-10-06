@@ -7,21 +7,35 @@ import './index.css';
 declare global {
   interface Window {
     __markEditMeeLoaded?: () => void;
+    __showEditMeeFallback?: (details?: any) => void;
+    __clearEditMeeCacheAndReload?: () => void;
+    __editMeeStage?: string;
   }
 }
 
 function startApplication() {
+  if (typeof window !== 'undefined') {
+    window.__editMeeStage = 'REACT_BOOTSTRAP';
+  }
+
   const rootElement = document.getElementById('root');
   if (!rootElement) {
-    console.error('Fatal: #root container element missing.');
+    console.error('[EditMee] boot:error Fatal: #root container element missing.');
+    if (typeof window !== 'undefined' && typeof window.__showEditMeeFallback === 'function') {
+      window.__showEditMeeFallback({
+        stage: 'CONTAINER_LOOKUP',
+        message: '#root element not found in DOM',
+      });
+    }
     return;
   }
 
   try {
+    console.info('[EditMee] boot:react');
     const root = createRoot(rootElement);
     root.render(
       <StrictMode>
-        <ErrorBoundary isRoot fallbackTitle="Application Initialization">
+        <ErrorBoundary isRoot fallbackTitle="EditMee">
           <App />
         </ErrorBoundary>
       </StrictMode>
@@ -32,20 +46,15 @@ function startApplication() {
       window.__markEditMeeLoaded();
     }
   } catch (err: any) {
-    console.error('Fatal: Failed to bootstrap React application:', err);
-    rootElement.innerHTML = `
-      <div style="min-height: 100vh; background: #020617; color: #f8fafc; display: flex; align-items: center; justify-content: center; padding: 24px; font-family: system-ui, sans-serif; text-align: center;">
-        <div style="max-width: 440px; background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; padding: 32px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
-          <h2 style="font-size: 18px; font-weight: 800; margin-bottom: 8px; color: #fff;">EditMee Startup Protection</h2>
-          <p style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 20px;">
-            A temporary browser initialization delay occurred. Click below to load your tools.
-          </p>
-          <button onclick="window.location.reload()" style="background: #dc2626; color: #fff; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer;">
-            Reload EditMee
-          </button>
-        </div>
-      </div>
-    `;
+    console.error('[EditMee] boot:error Failed to bootstrap React application:', err);
+    if (typeof window !== 'undefined' && typeof window.__showEditMeeFallback === 'function') {
+      window.__showEditMeeFallback({
+        stage: 'REACT_BOOTSTRAP',
+        message: err?.message || 'Application bootstrap error',
+        error: err,
+        stack: err?.stack,
+      });
+    }
   }
 }
 

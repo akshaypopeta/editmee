@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
 import { ToolDefinition, ToolResult } from '../../types';
 import { PdfEngine } from '../../core/pdf-engine/PdfEngine';
 import { FileEngine } from '../../core/file-engine/FileEngine';
@@ -243,7 +242,7 @@ export const ResumeBuilderTool: React.FC = () => {
   const [mobileTab, setMobileTab] = useState<'editor' | 'preview'>('editor');
 
   return (
-    <div id="resume-builder-workspace" className="flex flex-col h-[calc(100vh-8.5rem)] bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-md">
+    <div id="resume-builder-workspace" className="flex flex-col h-[calc(100vh-8.5rem)] h-[calc(100dvh-8.5rem)] bg-slate-900 text-slate-100 rounded-xl overflow-hidden border border-slate-800 shadow-md">
       {/* Top Header Bar */}
       <div className="min-h-14 bg-slate-900 border-b border-slate-800 px-3 sm:px-4 py-2 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
         <div className="flex items-center gap-2.5">

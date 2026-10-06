@@ -33,9 +33,9 @@ import {
   getToolCanonicalPath,
 } from './core/routing/toolUrls';
 import { storageEngine, HistoryItem } from './core/storage-engine/StorageEngine';
+import { safeSessionStorage } from './core/storage/safeStorage';
 import { taskManager, ActiveTaskInfo } from './core/task-manager/TaskManager';
 import { TaskProtectionModal } from './components/common/TaskProtectionModal';
-import { ToolShell } from './components/tool/ToolShell';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { ToolDefinition, ToolCategory } from './types';
 import { aiGateway } from './core/ai-gateway/AiGateway';
@@ -45,23 +45,53 @@ import { SidebarNav } from './components/navigation/SidebarNav';
 import { Footer } from './components/common/Footer';
 import { LegalPages, LegalPageId } from './components/common/LegalPages';
 import { SeoManager } from './core/seo/SeoManager';
-import { AutomatedPipelineWorkspace } from './components/workflow/AutomatedPipelineWorkspace';
 import { ScrollToTop } from './components/navigation/ScrollToTop';
 import { BackButton } from './components/navigation/BackButton';
 import { navigationManager } from './core/navigation/NavigationManager';
 import { NotFoundPage } from './components/common/NotFoundPage';
+import { HomepageHero } from './components/home/HomepageHero';
+import { HomepageContentSection } from './components/home/HomepageContentSection';
+import { ProgressiveToolDirectory } from './components/home/ProgressiveToolDirectory';
+
+// Lazy-load heavy workspaces to keep initial application startup lightweight (<200kB)
+const ToolShell = React.lazy(() =>
+  import('./components/tool/ToolShell').then((m) => ({ default: m.ToolShell }))
+);
+const AutomatedPipelineWorkspace = React.lazy(() =>
+  import('./components/workflow/AutomatedPipelineWorkspace').then((m) => ({
+    default: m.AutomatedPipelineWorkspace,
+  }))
+);
+
+function ToolLoadingFallback() {
+  return (
+    <div className="w-full min-h-[50vh] flex flex-col items-center justify-center p-8 space-y-4">
+      <EditMeeLogo height={44} variant="full" dark />
+      <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+        <span>Loading workspace...</span>
+      </div>
+    </div>
+  );
+}
+
+// Log boot start
+if (typeof window !== 'undefined') {
+  console.info('[EditMee] boot:start');
+  window.__editMeeStage = 'APP_MODULE_EVALUATION';
+}
 
 // Ensure all tools are registered and slug mappings initialized safely at startup
 try {
   registerAllTools();
 } catch (err) {
-  console.warn('[Startup] Tool registration completed with warnings:', err);
+  console.warn('[EditMee] boot:error Tool registration completed with warnings:', err);
 }
 
 try {
   initToolUrlMappings();
 } catch (err) {
-  console.warn('[Startup] Slug mappings initialized with warnings:', err);
+  console.warn('[EditMee] boot:error Slug mappings initialized with warnings:', err);
 }
 
 const LEGAL_PATHS: Record<string, LegalPageId> = {
@@ -122,7 +152,7 @@ export default function App() {
   }, []);
 
   // URL parsing helper: maps browser URL to canonical route
-  const parseCurrentUrl = useCallback(() => {
+  const parseCurrentUrl = useCallback(async () => {
     const rawPath = window.location.pathname.toLowerCase();
     const rawHash = window.location.hash.toLowerCase().replace(/^#/, '');
 
@@ -144,7 +174,15 @@ export default function App() {
 
     // 2. Check tool routes: /tools/:slug/, /tools/:slug, /tool/:id/, /suite/:id
     if (rawPath.startsWith('/tool/') || rawPath.startsWith('/tools/') || rawPath.startsWith('/suite/')) {
-      const resolved = resolveToolFromPath(rawPath);
+      let resolved = resolveToolFromPath(rawPath);
+      if (!resolved || !resolved.tool) {
+        // Tool might be in deferred catalog - await deferred catalog before declaring 404
+        try {
+          await registerAllTools();
+          initToolUrlMappings();
+          resolved = resolveToolFromPath(rawPath);
+        } catch {}
+      }
       if (resolved && resolved.tool) {
         setActiveToolId(resolved.tool.id);
         setActiveLegalPage(null);
@@ -169,7 +207,14 @@ export default function App() {
     // Hash-based tool route support (e.g. #tool/edit-pdf or #tools/merge-pdf)
     if (rawHash.startsWith('tool/') || rawHash.startsWith('tools/')) {
       const slugOrId = rawHash.replace(/^(?:tools?\/)/, '').replace(/\/$/, '');
-      const tool = resolveToolFromSlug(slugOrId);
+      let tool = resolveToolFromSlug(slugOrId);
+      if (!tool) {
+        try {
+          await registerAllTools();
+          initToolUrlMappings();
+          tool = resolveToolFromSlug(slugOrId);
+        } catch {}
+      }
       if (tool) {
         const canonical = getToolCanonicalPath(tool.id);
         setActiveToolId(tool.id);
@@ -264,7 +309,26 @@ export default function App() {
 
   // Initialize and handle popstate
   useEffect(() => {
+    console.info('[EditMee] boot:router', window.location.pathname);
     parseCurrentUrl();
+
+    // Mark boot complete, notify startup guard, and clear temporary reload flags
+    console.info('[EditMee] boot:complete');
+    if (typeof window !== 'undefined') {
+      window.__editMeeStage = 'BOOT_COMPLETE';
+      if (typeof (window as any).__markEditMeeLoaded === 'function') {
+        (window as any).__markEditMeeLoaded();
+      }
+    }
+    try {
+      safeSessionStorage.removeItem('editmee_chunk_reload_v1');
+    } catch {}
+
+    // Asynchronously ping non-critical AI gateway status without blocking UI render
+    console.info('[EditMee] boot:api');
+    aiGateway.getStatus().catch((apiErr) => {
+      console.warn('[EditMee] api:error Gateway ping failed (non-blocking):', apiErr);
+    });
 
     const handlePopState = () => {
       parseCurrentUrl();
@@ -380,8 +444,17 @@ export default function App() {
     };
   }, []);
 
-  // Registry tools
-  const allTools = useMemo(() => toolRegistry.getAll(), []);
+  // Registry tools subscription to update dynamically when deferred tools arrive
+  const [registryVersion, setRegistryVersion] = useState(0);
+
+  useEffect(() => {
+    const unsub = toolRegistry.subscribe(() => {
+      setRegistryVersion((v) => v + 1);
+    });
+    return unsub;
+  }, []);
+
+  const allTools = useMemo(() => toolRegistry.getAll(), [registryVersion]);
 
   // Subcategories available in current category selection
   const availableSubcategories = useMemo(() => {
@@ -660,16 +733,20 @@ export default function App() {
                   } catch {}
                 }}
               >
-                <ToolShell
-                  tool={currentActiveTool}
-                  onNavigateHome={() => handleNavClick('overview')}
-                  onNavigateCategory={handleCategoryFilterSelect}
-                  onSelectTool={launchTool}
-                  onOpenLegalPage={openLegalPage}
-                />
+                <React.Suspense fallback={<ToolLoadingFallback />}>
+                  <ToolShell
+                    tool={currentActiveTool}
+                    onNavigateHome={() => handleNavClick('overview')}
+                    onNavigateCategory={handleCategoryFilterSelect}
+                    onSelectTool={launchTool}
+                    onOpenLegalPage={openLegalPage}
+                  />
+                </React.Suspense>
               </ErrorBoundary>
             ) : activeNav === 'workflows' ? (
-              <AutomatedPipelineWorkspace />
+              <React.Suspense fallback={<ToolLoadingFallback />}>
+                <AutomatedPipelineWorkspace />
+              </React.Suspense>
             ) : activeNav === 'history' ? (
               /* Activity History Panel */
               <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
@@ -735,6 +812,15 @@ export default function App() {
             ) : (
               /* Home / Directory Overview */
               <div className="max-w-7xl mx-auto p-3.5 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
+                {/* Homepage Hero / Introduction Banner */}
+                {selectedCategoryFilter === 'all' && !searchQuery && (
+                  <HomepageHero
+                    onSelectTool={launchTool}
+                    onNavigateCategory={handleCategoryFilterSelect}
+                    totalToolsCount={allTools.length}
+                  />
+                )}
+
                 {/* Flagship Production Suites Quick Launch Banner */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   <a
@@ -894,93 +980,29 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* Grid of Tool Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-                    {filteredTools.map((tool) => {
-                      const isFav = favorites.includes(tool.id);
-                      const toolCanonicalUrl = getToolCanonicalPath(tool.id);
-
-                      return (
-                        <div
-                          key={tool.id}
-                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 hover:border-red-500 dark:hover:border-red-500 hover:shadow-xl transition-all flex flex-col justify-between space-y-3.5 sm:space-y-4 shadow-xs group"
-                        >
-                          <div className="space-y-2">
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-center gap-2">
-                                <a
-                                  href={`/category/${tool.category.toLowerCase()}/`}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    handleCategoryFilterSelect(tool.category, 'all');
-                                  }}
-                                  className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-950/70 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 transition-colors"
-                                >
-                                  {tool.category}
-                                </a>
-                                {tool.capabilities.aiPowered && (
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">
-                                    AI
-                                  </span>
-                                )}
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => storageEngine.toggleFavorite(tool.id)}
-                                aria-label="Favorite"
-                                className="text-slate-300 dark:text-slate-600 hover:text-amber-500 cursor-pointer p-1.5 touch-manipulation min-w-[32px] min-h-[32px] flex items-center justify-center"
-                              >
-                                <Star
-                                  className={`w-4 h-4 ${
-                                    isFav ? 'fill-amber-400 text-amber-500' : ''
-                                  }`}
-                                />
-                              </button>
-                            </div>
-
-                            <div>
-                              <a
-                                href={toolCanonicalUrl}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  launchTool(tool.id);
-                                }}
-                                className="font-bold text-slate-900 dark:text-white text-sm sm:text-base group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors block"
-                              >
-                                {tool.name}
-                              </a>
-                              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                                {tool.description}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                            <div className="flex flex-wrap gap-1 overflow-hidden">
-                              {tool.tags.slice(0, 3).map((tag, tIdx) => (
-                                <span key={`${tool.id}-tag-${tIdx}-${tag}`} className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
-                                  #{tag}
-                                </span>
-                              ))}
-                            </div>
-
-                            <a
-                              href={toolCanonicalUrl}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                launchTool(tool.id);
-                              }}
-                              className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs touch-manipulation shrink-0 min-h-[36px]"
-                            >
-                              Open Tool <ArrowRight className="w-3.5 h-3.5" />
-                            </a>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {/* Progressive Directory of Tool Cards */}
+                  <ProgressiveToolDirectory
+                    tools={filteredTools}
+                    favorites={favorites}
+                    onToggleFavorite={(id) => storageEngine.toggleFavorite(id)}
+                    onLaunchTool={launchTool}
+                    onSelectCategory={(cat) => handleCategoryFilterSelect(cat, 'all')}
+                    onResetFilters={() => {
+                      setSelectedCategoryFilter('all');
+                      setSelectedSubcategoryFilter('all');
+                      setSearchQuery('');
+                    }}
+                  />
                 </div>
+
+                {/* Comprehensive Visible Homepage Content Layer for Users, Search & AdSense */}
+                {selectedCategoryFilter === 'all' && !searchQuery && (
+                  <HomepageContentSection
+                    onSelectTool={launchTool}
+                    onNavigateCategory={handleCategoryFilterSelect}
+                    onNavigateWorkflows={() => handleNavClick('workflows')}
+                  />
+                )}
               </div>
             )}
           </main>

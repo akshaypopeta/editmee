@@ -22,16 +22,219 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="preload" href="/editmee-logo.svg" as="image" type="image/svg+xml" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <script>
-      // Browser & mobile polyfills for WebKit / Safari 14-16 / older Android engines
+      // Production Error Safety, Diagnostics & Mobile Compatibility Layer for EditMee
       (function() {
         if (typeof window !== 'undefined') {
-          // Global object fallbacks
+          console.info('[EditMee] boot:start');
+          window.__editMeeMounted = false;
+          window.__editMeeStage = 'HTML_INIT';
+
+          // Diagnostic store for complete transparent error tracing
+          window.__editMeeDiagnostics = {
+            stage: 'HTML_INIT',
+            startTime: Date.now(),
+            requests: [],
+            failedRequests: [],
+            errors: [],
+            lastRequest: null
+          };
+
+          // Wrap window.fetch to monitor every network request and record failures
+          if (typeof window.fetch === 'function') {
+            var origFetch = window.fetch;
+            window.fetch = function(input, init) {
+              var url = typeof input === 'string' ? input : (input && input.url) || String(input);
+              var method = (init && init.method) || (input && input.method) || 'GET';
+              var reqInfo = { url: url, method: method, time: Date.now(), status: null, ok: null };
+              window.__editMeeDiagnostics.lastRequest = reqInfo;
+              window.__editMeeDiagnostics.requests.push(reqInfo);
+              if (window.__editMeeDiagnostics.requests.length > 20) {
+                window.__editMeeDiagnostics.requests.shift();
+              }
+
+              return origFetch.apply(this, arguments).then(function(res) {
+                reqInfo.status = res.status;
+                reqInfo.ok = res.ok;
+                return res;
+              }).catch(function(err) {
+                reqInfo.status = 'NETWORK_ERROR';
+                reqInfo.error = err && (err.message || String(err));
+                window.__editMeeDiagnostics.failedRequests.push(reqInfo);
+                console.warn('[EditMee] Monitored fetch failure:', url, err);
+                throw err;
+              });
+            };
+          }
+
+          window.__markEditMeeLoaded = function() {
+            window.__editMeeMounted = true;
+            window.__editMeeStage = 'BOOT_COMPLETE';
+            try {
+              sessionStorage.removeItem('__editmee_auto_reload_v2');
+              sessionStorage.removeItem('__editmee_stale_chunk_refresh__');
+            } catch (e) {}
+          };
+
+          // Automated self-healing reload that bypasses mobile browser disk cache
+          window.__autoRecoverLatestVersion = function() {
+            try {
+              var KEY = '__editmee_auto_reload_v2';
+              var count = parseInt(sessionStorage.getItem(KEY) || '0', 10);
+              if (count < 2) {
+                sessionStorage.setItem(KEY, String(count + 1));
+                var url = new URL(window.location.href);
+                url.searchParams.set('_v', Date.now().toString());
+                window.location.replace(url.toString());
+                return true;
+              }
+            } catch (e) {}
+            return false;
+          };
+
+          // Display authentic diagnostic UI with complete technical details instead of generic error masking
+          window.__showEditMeeFallback = function(info) {
+            if (window.__editMeeMounted) return;
+            var details = typeof info === 'object' && info !== null ? info : { message: String(info || 'Unknown startup error') };
+            var stage = details.stage || window.__editMeeStage || 'APPLICATION_INITIALIZATION';
+            var errorMsg = details.message || (details.error && (details.error.message || String(details.error))) || 'Unknown startup error';
+            var stack = (details.error && details.error.stack) || details.stack || '';
+            var lastReq = window.__editMeeDiagnostics && window.__editMeeDiagnostics.lastRequest;
+            var reqStr = lastReq ? (lastReq.method + ' ' + lastReq.url + ' (' + (lastReq.status || 'pending') + ')') : (details.request || 'None');
+
+            window.__editMeeDiagnostics.errors.push({
+              stage: stage,
+              error: errorMsg,
+              stack: stack,
+              request: reqStr,
+              time: Date.now()
+            });
+
+            var loadingEl = document.getElementById('editmee-boot-loading');
+            var fallbackEl = document.getElementById('editmee-boot-fallback');
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (fallbackEl) {
+              fallbackEl.style.display = 'flex';
+              var stageEl = document.getElementById('diag-stage');
+              var errorEl = document.getElementById('diag-error');
+              var requestEl = document.getElementById('diag-request');
+              var statusEl = document.getElementById('diag-status');
+              var detailsEl = document.getElementById('diag-details');
+
+              if (stageEl) stageEl.textContent = stage;
+              if (errorEl) errorEl.textContent = errorMsg;
+              if (requestEl) requestEl.textContent = lastReq ? (lastReq.method + ' ' + lastReq.url) : (details.request || 'None');
+              if (statusEl) statusEl.textContent = lastReq ? String(lastReq.status || 'Error') : 'N/A';
+              if (detailsEl) {
+                var diagReport = {
+                  stage: stage,
+                  error: errorMsg,
+                  request: reqStr,
+                  timestamp: new Date().toISOString(),
+                  userAgent: navigator.userAgent,
+                  viewport: window.innerWidth + 'x' + window.innerHeight,
+                  failedRequests: (window.__editMeeDiagnostics && window.__editMeeDiagnostics.failedRequests) || [],
+                  stack: stack || undefined
+                };
+                detailsEl.textContent = JSON.stringify(diagReport, null, 2);
+              }
+            }
+          };
+
+          // Safe network status indicator: does NOT abort React loading, only shows notice if connection is slow
+          setTimeout(function() {
+            if (!window.__editMeeMounted) {
+              var slowNotice = document.getElementById('editmee-slow-notice');
+              if (slowNotice) slowNotice.style.display = 'block';
+            }
+          }, 8000);
+
+          // WASM & threading environment detection (SharedArrayBuffer absent on mobile Safari)
+          if (typeof window.crossOriginIsolated === 'undefined') {
+            window.crossOriginIsolated = false;
+          }
+
+          // Global environment object fallback (globalThis for older browsers)
+          if (typeof globalThis === 'undefined') {
+            window.globalThis = window;
+          }
           if (!window.global) {
             window.global = window;
           }
           if (!window.DOMMatrix && window.WebKitCSSMatrix) {
             window.DOMMatrix = window.WebKitCSSMatrix;
+          }
+
+          // queueMicrotask fallback for older browsers
+          if (typeof window.queueMicrotask !== 'function') {
+            window.queueMicrotask = function(fn) {
+              Promise.resolve().then(fn).catch(function(err) {
+                setTimeout(function() { throw err; }, 0);
+              });
+            };
+          }
+
+          // Promise.allSettled polyfill for older browsers (< 2020)
+          if (!Promise.allSettled) {
+            Promise.allSettled = function(promises) {
+              return Promise.all(
+                Array.from(promises).map(function(p) {
+                  return Promise.resolve(p).then(
+                    function(v) { return { status: 'fulfilled', value: v }; },
+                    function(e) { return { status: 'rejected', reason: e }; }
+                  );
+                })
+              );
+            };
+          }
+
+          // Object.fromEntries polyfill for older browsers (< 2019)
+          if (!Object.fromEntries) {
+            Object.fromEntries = function(entries) {
+              var obj = {};
+              if (!entries) return obj;
+              var iter = Array.from(entries);
+              for (var i = 0; i < iter.length; i++) {
+                var pair = iter[i];
+                if (pair && pair.length >= 2) {
+                  obj[pair[0]] = pair[1];
+                }
+              }
+              return obj;
+            };
+          }
+
+          // Array.prototype.flat & flatMap polyfills for older browsers (< 2019)
+          if (!Array.prototype.flat) {
+            Array.prototype.flat = function(depth) {
+              var d = depth === undefined ? 1 : Math.floor(depth);
+              if (d < 1) return Array.prototype.slice.call(this);
+              return (function flatten(arr, currentDepth) {
+                return arr.reduce(function(acc, val) {
+                  return acc.concat(Array.isArray(val) && currentDepth > 0 ? flatten(val, currentDepth - 1) : val);
+                }, []);
+              })(this, d);
+            };
+          }
+          if (!Array.prototype.flatMap) {
+            Array.prototype.flatMap = function(cb, thisArg) {
+              return Array.prototype.map.call(this, cb, thisArg).flat();
+            };
+          }
+
+          // String.prototype.replaceAll polyfill for older browsers (< 2021)
+          if (!String.prototype.replaceAll) {
+            String.prototype.replaceAll = function(search, replacement) {
+              if (search instanceof RegExp) {
+                if (!search.global) throw new TypeError('replaceAll must be called with a global RegExp');
+                return this.replace(search, replacement);
+              }
+              return this.split(search).join(replacement);
+            };
           }
 
           // crypto.randomUUID polyfill for iOS < 15.4 / older WebKit
@@ -75,7 +278,11 @@
           if (!window.structuredClone) {
             window.structuredClone = function(obj) {
               if (obj === undefined) return undefined;
-              return JSON.parse(JSON.stringify(obj));
+              try {
+                return JSON.parse(JSON.stringify(obj));
+              } catch (e) {
+                return obj;
+              }
             };
           }
 
@@ -91,92 +298,414 @@
             };
           }
 
-          // ResizeObserver fallback to prevent runtime crashes on older engines
-          if (!window.ResizeObserver) {
-            window.ResizeObserver = function(callback) {
+          // requestAnimationFrame fallback
+          if (!window.requestAnimationFrame) {
+            window.requestAnimationFrame = function(cb) {
+              return setTimeout(function() { cb(Date.now()); }, 16);
+            };
+          }
+          if (!window.cancelAnimationFrame) {
+            window.cancelAnimationFrame = function(id) {
+              clearTimeout(id);
+            };
+          }
+
+          // matchMedia fallback
+          if (!window.matchMedia) {
+            window.matchMedia = function() {
               return {
-                observe: function(elem) {
-                  window.addEventListener('resize', function() {
-                    callback([{ target: elem, contentRect: elem.getBoundingClientRect() }]);
-                  });
-                },
-                unobserve: function() {},
-                disconnect: function() {}
+                matches: false,
+                media: '',
+                onchange: null,
+                addListener: function() {},
+                removeListener: function() {},
+                addEventListener: function() {},
+                removeEventListener: function() {},
+                dispatchEvent: function() { return false; }
               };
             };
           }
 
-          // Safe storage test & memory fallback for Safari Private Browsing
-          try {
-            var testKey = '__editmee_st_test__';
-            window.localStorage.setItem(testKey, '1');
-            window.localStorage.removeItem(testKey);
-          } catch (e) {
-            var createMemoryStorage = function() {
-              var store = {};
+          // IntersectionObserver fallback
+          if (!window.IntersectionObserver) {
+            window.IntersectionObserver = function() {
               return {
-                getItem: function(key) { return Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null; },
-                setItem: function(key, val) { store[key] = String(val); },
-                removeItem: function(key) { delete store[key]; },
-                clear: function() { store = {}; },
-                key: function(i) { return Object.keys(store)[i] || null; },
-                get length() { return Object.keys(store).length; }
+                observe: function() {},
+                unobserve: function() {},
+                disconnect: function() {},
+                takeRecords: function() { return []; }
               };
             };
-            try { Object.defineProperty(window, 'localStorage', { value: createMemoryStorage(), configurable: true }); } catch(e2) {}
-            try { Object.defineProperty(window, 'sessionStorage', { value: createMemoryStorage(), configurable: true }); } catch(e3) {}
           }
+
+          // BroadcastChannel fallback
+          if (!window.BroadcastChannel) {
+            window.BroadcastChannel = function() {
+              return {
+                name: '',
+                postMessage: function() {},
+                close: function() {},
+                onmessage: null,
+                onmessageerror: null,
+                addEventListener: function() {},
+                removeEventListener: function() {},
+                dispatchEvent: function() { return false; }
+              };
+            };
+          }
+
+          // Resilient Clipboard API with automatic fallback for mobile Safari & iframe contexts
+          if (typeof navigator !== 'undefined') {
+            var legacyCopy = function(text) {
+              return new Promise(function(resolve, reject) {
+                try {
+                  var textArea = document.createElement('textarea');
+                  textArea.value = text;
+                  textArea.style.position = 'fixed';
+                  textArea.style.top = '-9999px';
+                  textArea.style.left = '-9999px';
+                  textArea.setAttribute('readonly', '');
+                  document.body.appendChild(textArea);
+                  textArea.focus();
+                  textArea.select();
+                  var successful = false;
+                  try {
+                    successful = document.execCommand('copy');
+                  } catch (cmdErr) {
+                    successful = false;
+                  }
+                  document.body.removeChild(textArea);
+                  if (successful) resolve();
+                  else reject(new Error('copy command unsuccessful'));
+                } catch (err) {
+                  reject(err);
+                }
+              });
+            };
+
+            if (!navigator.clipboard) {
+              navigator.clipboard = {
+                writeText: function(text) { return legacyCopy(text); },
+                readText: function() { return Promise.resolve(''); }
+              };
+            } else {
+              var origWrite = navigator.clipboard.writeText;
+              navigator.clipboard.writeText = function(text) {
+                try {
+                  return origWrite.call(navigator.clipboard, text).catch(function(err) {
+                    console.warn('[EditMee] Async clipboard rejected, attempting legacy copy fallback:', err);
+                    return legacyCopy(text);
+                  });
+                } catch (err) {
+                  console.warn('[EditMee] Async clipboard threw synchronously, attempting legacy copy fallback:', err);
+                  return legacyCopy(text);
+                }
+              };
+            }
+          }
+
+          // ResizeObserver fallback with debounce and proper cleanup
+          if (!window.ResizeObserver) {
+            window.ResizeObserver = function(callback) {
+              var observedElements = [];
+              var rafId = null;
+              var check = function() {
+                if (observedElements.length === 0) return;
+                var entries = [];
+                for (var i = 0; i < observedElements.length; i++) {
+                  var el = observedElements[i];
+                  try {
+                    var rect = el.getBoundingClientRect();
+                    entries.push({ target: el, contentRect: rect });
+                  } catch (e) {}
+                }
+                if (entries.length > 0) {
+                  try { callback(entries); } catch (e) {}
+                }
+              };
+              var onResize = function() {
+                if (rafId) cancelAnimationFrame(rafId);
+                rafId = requestAnimationFrame(check);
+              };
+              return {
+                observe: function(elem) {
+                  if (elem && observedElements.indexOf(elem) === -1) {
+                    observedElements.push(elem);
+                    if (observedElements.length === 1) {
+                      window.addEventListener('resize', onResize, { passive: true });
+                    }
+                  }
+                },
+                unobserve: function(elem) {
+                  var idx = observedElements.indexOf(elem);
+                  if (idx !== -1) {
+                    observedElements.splice(idx, 1);
+                    if (observedElements.length === 0) {
+                      window.removeEventListener('resize', onResize);
+                    }
+                  }
+                },
+                disconnect: function() {
+                  observedElements = [];
+                  window.removeEventListener('resize', onResize);
+                  if (rafId) cancelAnimationFrame(rafId);
+                }
+              };
+            };
+          }
+
+          // Safe storage prototype interception & memory fallback for WebKit / Safari Private Browsing
+          (function() {
+            var memoryStore = {};
+            try {
+              var testKey = '__editmee_st_probe__';
+              window.localStorage.setItem(testKey, '1');
+              window.localStorage.removeItem(testKey);
+            } catch (e) {
+              console.warn('[EditMee] storage:error Native storage restricted, activating memory fallback');
+            }
+
+            // Patch Storage.prototype to guarantee zero unhandled DOMException / SecurityError crashes
+            if (typeof window !== 'undefined' && window.Storage && window.Storage.prototype) {
+              var origSet = window.Storage.prototype.setItem;
+              var origGet = window.Storage.prototype.getItem;
+              var origRem = window.Storage.prototype.removeItem;
+              var origClr = window.Storage.prototype.clear;
+
+              window.Storage.prototype.setItem = function(key, val) {
+                var sKey = String(key);
+                var sVal = String(val);
+                try {
+                  origSet.call(this, sKey, sVal);
+                } catch (err) {
+                  memoryStore[sKey] = sVal;
+                }
+              };
+
+              window.Storage.prototype.getItem = function(key) {
+                var sKey = String(key);
+                try {
+                  var res = origGet.call(this, sKey);
+                  if (res !== null) return res;
+                } catch (err) {}
+                return Object.prototype.hasOwnProperty.call(memoryStore, sKey) ? memoryStore[sKey] : null;
+              };
+
+              window.Storage.prototype.removeItem = function(key) {
+                var sKey = String(key);
+                try {
+                  origRem.call(this, sKey);
+                } catch (err) {}
+                delete memoryStore[sKey];
+              };
+
+              window.Storage.prototype.clear = function() {
+                try {
+                  origClr.call(this);
+                } catch (err) {}
+                memoryStore = {};
+              };
+            }
+
+            // Safe IndexedDB guard for private browsing mode
+            try {
+              if (typeof window !== 'undefined' && !window.indexedDB) {
+                window.indexedDB = null;
+              }
+            } catch (idbErr) {}
+          })();
+
+          // Vite Stale Chunk Handler: Detects outdated chunk references and safely performs a cache-busting refresh
+          window.addEventListener('vite:preloadError', function(event) {
+            console.warn('[EditMee] chunk:error', event);
+            if (event && event.preventDefault) event.preventDefault();
+            if (typeof window.__autoRecoverLatestVersion === 'function') {
+              var recovered = window.__autoRecoverLatestVersion();
+              if (recovered) return;
+            }
+            window.__showEditMeeFallback({ stage: 'CHUNK_PRELOAD_ERROR', message: 'Failed to preload required module chunk', error: event });
+          });
+
+          // Global unhandled error listener: catch fatal bundle load/parse crashes and auto-recover
+          window.addEventListener('error', function(event) {
+            console.warn('[EditMee] boot:error', event && (event.error || event.message));
+            var msg = (event && (event.message || (event.error && event.error.message))) || '';
+
+            // Discard harmless resource errors (img, link, audio, video) and benign browser resize loop notifications
+            if (event.target && event.target !== window && (event.target.tagName === 'IMG' || event.target.tagName === 'LINK' || event.target.tagName === 'AUDIO' || event.target.tagName === 'VIDEO')) {
+              return;
+            }
+            if (msg.indexOf('ResizeObserver loop') !== -1) {
+              return;
+            }
+
+            // Chunk and dynamic module load failure auto-recovery
+            if (
+              msg.indexOf('Loading chunk') !== -1 ||
+              msg.indexOf('dynamically imported module') !== -1 ||
+              msg.indexOf('module script failed') !== -1
+            ) {
+              if (typeof window.__autoRecoverLatestVersion === 'function') {
+                var recovered = window.__autoRecoverLatestVersion();
+                if (recovered) return;
+              }
+            }
+
+            // Universal pre-mount crash guard: if React has not mounted, show diagnostic UI with exact details
+            if (!window.__editMeeMounted) {
+              window.__showEditMeeFallback({
+                stage: window.__editMeeStage || 'SCRIPT_EXECUTION',
+                message: msg || 'Script execution error',
+                error: event.error,
+                request: event.filename ? (event.filename + ':' + event.lineno + ':' + event.colno) : undefined
+              });
+            }
+          }, true);
+
+          // Handle unhandled promise rejections on window load with auto-recovery for failed dynamic imports
+          window.addEventListener('unhandledrejection', function(event) {
+            console.warn('[EditMee] boot:error unhandledrejection', event && event.reason);
+            var reason = event && event.reason;
+            var reasonMsg = (reason && (reason.message || String(reason))) || '';
+
+            // Non-fatal background network/fetch rejections MUST NEVER abort the application shell
+            if (reasonMsg.indexOf('Failed to fetch') !== -1 || reasonMsg.indexOf('NetworkError') !== -1) {
+              console.warn('[EditMee] Background fetch error (non-fatal, continuing UI render):', reasonMsg);
+              if (event && event.preventDefault) event.preventDefault();
+              return;
+            }
+
+            if (!window.__editMeeMounted) {
+              if (
+                reasonMsg.indexOf('Loading chunk') !== -1 ||
+                reasonMsg.indexOf('dynamically imported module') !== -1 ||
+                reasonMsg.indexOf('Importing a module script failed') !== -1
+              ) {
+                if (typeof window.__autoRecoverLatestVersion === 'function') {
+                  var recovered = window.__autoRecoverLatestVersion();
+                  if (recovered) return;
+                }
+                window.__showEditMeeFallback({
+                  stage: 'DYNAMIC_IMPORT_FAILURE',
+                  message: reasonMsg,
+                  error: reason
+                });
+              }
+            }
+
+            if (event && event.preventDefault) {
+              event.preventDefault();
+            }
+          });
         }
 
         // Cleanup broken/stale legacy service workers if any exist
         if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(function(regs) {
-            for (var i = 0; i < regs.length; i++) {
-              regs[i].unregister();
-            }
-          }).catch(function() {});
+          try {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              for (var i = 0; i < regs.length; i++) {
+                regs[i].unregister();
+              }
+            }).catch(function() {});
+          } catch (e) {}
         }
 
-        // Startup crash protection & dynamic chunk recovery
-        var hasLoadedSuccessfully = false;
-        window.__markEditMeeLoaded = function() {
-          hasLoadedSuccessfully = true;
-          try { sessionStorage.removeItem('editmee_chunk_retry'); } catch(e) {}
-        };
-
-        window.addEventListener('error', function(event) {
-          var msg = (event.message || '') + '';
-          var target = event.target || {};
-          var isChunkError = target.tagName === 'SCRIPT' || 
-            msg.indexOf('Loading chunk') !== -1 || 
-            msg.indexOf('Failed to fetch dynamically imported module') !== -1 ||
-            msg.indexOf('Importing a module script failed') !== -1 ||
-            msg.indexOf('Unexpected token') !== -1;
-
-          if (isChunkError && !hasLoadedSuccessfully) {
-            try {
-              var retried = sessionStorage.getItem('editmee_chunk_retry');
-              if (!retried) {
-                sessionStorage.setItem('editmee_chunk_retry', '1');
-                window.location.reload();
-                return;
+        // Purge obsolete Cache Storage instances from previous deployments
+        if (typeof window !== 'undefined' && 'caches' in window) {
+          try {
+            caches.keys().then(function(keys) {
+              for (var i = 0; i < keys.length; i++) {
+                caches.delete(keys[i]);
               }
-            } catch(e) {}
-          }
-
-          // If root is still empty after 2.5 seconds and there was a fatal error, show rescue UI
-          setTimeout(function() {
-            var root = document.getElementById('root');
-            if (root && (!root.firstElementChild || root.innerHTML.trim() === '')) {
-              root.innerHTML = '<div style="min-height:100vh;background:#020617;color:#f8fafc;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,sans-serif;text-align:center;"><div style="max-width:440px;background:#0f172a;border:1px solid #1e293b;border-radius:16px;padding:32px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);"><h2 style="font-size:18px;font-weight:800;margin-bottom:8px;color:#fff;">EditMee Ready to Recover</h2><p style="font-size:13px;color:#94a3b8;line-height:1.5;margin-bottom:20px;">A connection drop or outdated browser cache prevented startup. Click below to refresh with the latest version.</p><button onclick="try{sessionStorage.clear();}catch(e){}window.location.reload(true)" style="background:#dc2626;color:#fff;border:none;padding:10px 20px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;">Clear Cache & Reload</button></div></div>';
-            }
-          }, 2500);
-        }, true);
+            }).catch(function() {});
+          } catch (e) {}
+        }
       })();
     </script>
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased selection:bg-red-600 selection:text-white">
-    <div id="root"></div>
+    <div id="root">
+      <div id="editmee-boot-shell" style="min-height: 100vh; min-height: 100dvh; background: #020617; color: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; box-sizing: border-box;">
+        <div style="max-width: 460px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 16px;">
+          <!-- Authentic EditMee Mascot & Brand Logo -->
+          <div style="display: flex; align-items: center; justify-content: center; gap: 10px; user-select: none;">
+            <svg viewBox="0 0 200 210" fill="none" xmlns="http://www.w3.org/2000/svg" style="height: 54px; width: auto; display: block;" aria-label="EditMee Logo">
+              <ellipse cx="105" cy="198" rx="72" ry="7" fill="#E2E8F0" opacity="0.3"></ellipse>
+              <g>
+                <path d="M 52 46 C 52 32, 60 24, 74 24 L 132 24 L 168 60 L 168 172 C 168 186, 158 194, 144 194 L 74 194 C 60 194, 52 186, 52 172 Z" fill="#FFFFFF" stroke="#1E293B" stroke-width="6" stroke-linejoin="round"></path>
+                <path d="M 132 24 L 132 54 C 132 59, 135 62, 140 62 L 168 60 Z" fill="#EF4444" stroke="#1E293B" stroke-width="5" stroke-linejoin="round"></path>
+                <rect x="38" y="38" width="48" height="28" rx="6" fill="#EF4444" stroke="#1E293B" stroke-width="4.5"></rect>
+                <text x="62" y="58" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="14" text-anchor="middle" letter-spacing="0.5">PDF</text>
+                <path d="M 82 85 C 86 82, 92 82, 96 85" stroke="#1E293B" stroke-width="3.5" stroke-linecap="round"></path>
+                <path d="M 122 85 C 126 82, 132 82, 136 85" stroke="#1E293B" stroke-width="3.5" stroke-linecap="round"></path>
+                <ellipse cx="89" cy="98" rx="6.5" ry="9" fill="#1E293B"></ellipse>
+                <circle cx="87" cy="94" r="2.8" fill="#FFFFFF"></circle>
+                <ellipse cx="129" cy="98" rx="6.5" ry="9" fill="#1E293B"></ellipse>
+                <circle cx="127" cy="94" r="2.8" fill="#FFFFFF"></circle>
+                <path d="M 98 110 C 98 123, 120 123, 120 110 Z" fill="#EF4444" stroke="#1E293B" stroke-width="3.5" stroke-linejoin="round"></path>
+                <path d="M 103 118 C 105 113, 113 113, 115 118" fill="#FDA4AF"></path>
+                <path d="M 80 132 C 74 132, 70 136, 70 142 L 70 166 C 70 172, 74 176, 80 176 L 128 176 C 134 176, 138 172, 138 166 L 138 158 L 148 152 L 138 148 L 138 142 C 138 136, 134 132, 128 132 Z" fill="#FFFFFF" stroke="#1E293B" stroke-width="4" stroke-linejoin="round"></path>
+                <text x="104" y="151" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="13" text-anchor="middle" letter-spacing="0.2">EDIT</text>
+                <text x="104" y="169" fill="#EF4444" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="15" text-anchor="middle" letter-spacing="0.5">ME!</text>
+                <path d="M 52 118 C 36 122, 28 135, 34 146 C 36 150, 42 150, 48 144" stroke="#1E293B" stroke-width="5" fill="none" stroke-linecap="round"></path>
+                <circle cx="48" cy="148" r="8" fill="#FFFFFF" stroke="#1E293B" stroke-width="4"></circle>
+                <path d="M 54 148 L 70 149" stroke="#1E293B" stroke-width="5.5" stroke-linecap="round"></path>
+                <g transform="rotate(18 170 120)">
+                  <rect x="162" y="52" width="16" height="12" rx="3" fill="#FDA4AF" stroke="#1E293B" stroke-width="3.5"></rect>
+                  <rect x="162" y="64" width="16" height="6" fill="#94A3B8" stroke="#1E293B" stroke-width="3"></rect>
+                  <rect x="162" y="70" width="16" height="62" fill="#EF4444" stroke="#1E293B" stroke-width="4"></rect>
+                  <line x1="170" y1="70" x2="170" y2="132" stroke="#B91C1C" stroke-width="2.5"></line>
+                  <polygon points="162,132 178,132 170,148" fill="#FED7AA" stroke="#1E293B" stroke-width="3.5"></polygon>
+                  <polygon points="167,142 173,142 170,148" fill="#1E293B"></polygon>
+                </g>
+                <circle cx="160" cy="132" r="9" fill="#FFFFFF" stroke="#1E293B" stroke-width="4"></circle>
+              </g>
+            </svg>
+            <div style="display: flex; align-items: baseline; font-weight: 900; font-size: 28px; letter-spacing: -0.03em; line-height: 1;">
+              <span style="color: #ffffff;">edit</span><span style="color: #ef4444;">mee</span>
+            </div>
+          </div>
+
+          <!-- Normal Loading State -->
+          <div id="editmee-boot-loading" style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 8px;">
+            <div style="width: 32px; height: 32px; border: 3px solid rgba(148, 163, 184, 0.2); border-top-color: #dc2626; border-radius: 50%; animation: editmee-spin 0.8s linear infinite;"></div>
+            <p style="font-size: 13px; color: #94a3b8; margin: 0;">Loading your digital workspace...</p>
+            <p id="editmee-slow-notice" style="display: none; font-size: 11px; color: #64748b; margin: 0;">Connecting on mobile network...</p>
+          </div>
+
+          <!-- Diagnostic Recovery Box -->
+          <div id="editmee-boot-fallback" style="display: none; flex-direction: column; align-items: stretch; gap: 12px; width: 100%; background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; padding: 20px; box-sizing: border-box; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); text-align: left;">
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 8px;">
+              <span style="font-size: 12px; font-weight: 800; color: #f87171; letter-spacing: 0.05em; text-transform: uppercase;">EDITMEE STARTUP DIAGNOSTIC</span>
+              <span id="diag-status-badge" style="font-size: 10px; font-weight: 700; background: #7f1d1d; color: #fecaca; padding: 2px 8px; border-radius: 6px;">ERROR</span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-family: monospace;">
+              <div><strong style="color: #94a3b8;">Stage:</strong> <span id="diag-stage" style="color: #38bdf8;">INITIALIZING</span></div>
+              <div><strong style="color: #94a3b8;">Error:</strong> <span id="diag-error" style="color: #f87171; word-break: break-all;">None</span></div>
+              <div><strong style="color: #94a3b8;">Request:</strong> <span id="diag-request" style="color: #fcd34d; word-break: break-all;">None</span></div>
+              <div><strong style="color: #94a3b8;">Status:</strong> <span id="diag-status" style="color: #cbd5e1;">N/A</span></div>
+            </div>
+
+            <pre id="diag-details" style="font-size: 10px; max-height: 140px; overflow-y: auto; background: #020617; color: #94a3b8; padding: 10px; border-radius: 8px; border: 1px solid #334155; margin: 0; white-space: pre-wrap; word-break: break-all; font-family: monospace;"></pre>
+
+            <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px;">
+              <button id="diag-copy-btn" onclick="(function(){ var text = document.getElementById('diag-details').textContent; (navigator.clipboard && navigator.clipboard.writeText(text)).then(function(){ var b = document.getElementById('diag-copy-btn'); b.textContent = 'Copied!'; setTimeout(function(){ b.textContent = 'Copy Diagnostics'; }, 2000); }).catch(function(){}); })()" style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer;">
+                Copy Diagnostics
+              </button>
+              <button onclick="(window.__autoRecoverLatestVersion && window.__autoRecoverLatestVersion()) || window.location.reload()" style="background: #dc2626; color: #ffffff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer;">
+                Reload EditMee
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <style>
+        @keyframes editmee-spin {
+          to { transform: rotate(360deg); }
+        }
+      </style>
+    </div>
     <noscript>
       <div style="padding: 2rem; color: #fff; background: #020617; font-family: system-ui, sans-serif; text-align: center;">
         <h1 style="font-size: 1.5rem; margin-bottom: 1rem;">EditMee Universal Digital Tools</h1>

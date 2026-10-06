@@ -90,20 +90,27 @@ export const MediaAudioArchetypeWorkspace: React.FC<Props> = ({ tool }) => {
   const drumTimerRef = useRef<number | null>(null);
 
   const getAudioContext = () => {
-    if (!audioCtxRef.current) {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      audioCtxRef.current = new AudioCtx();
+    try {
+      if (!audioCtxRef.current) {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioCtx) return null;
+        audioCtxRef.current = new AudioCtx();
+      }
+      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {});
+      }
+      return audioCtxRef.current;
+    } catch (e) {
+      console.warn('AudioContext initialization restricted:', e);
+      return null;
     }
-    if (audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
-    }
-    return audioCtxRef.current;
   };
 
   // Play short synthesized tone
   const playTone = (freq: number, duration: number = 0.2, type: OscillatorType = 'sine') => {
     try {
       const ctx = getAudioContext();
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = type;
@@ -133,6 +140,7 @@ export const MediaAudioArchetypeWorkspace: React.FC<Props> = ({ tool }) => {
     } else {
       try {
         const ctx = getAudioContext();
+        if (!ctx) return;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
 
@@ -189,6 +197,7 @@ export const MediaAudioArchetypeWorkspace: React.FC<Props> = ({ tool }) => {
     if (!freqs) return;
     try {
       const ctx = getAudioContext();
+      if (!ctx) return;
       const osc1 = ctx.createOscillator();
       const osc2 = ctx.createOscillator();
       const gain = ctx.createGain();
